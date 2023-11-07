@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn instance to serve myproject
+After=network.target
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/myproject
+Environment="PATH=/home/ubuntu/myproject/venv/bin"
+ExecStart=/home/ubuntu/myproject/venv/bin/gunicorn --workers 1 --bind 0.0.0.0:5001 wsgi:app
+
+[Install]
+WantedBy=multi-user.target  150  sudo systemctl start myproject
