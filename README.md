@@ -3,7 +3,11 @@
 https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04
 
 > mkdir myproject
+or
+git clone https://github.com/etiennecorvee/SimpleWebApp.git
 > cd myproject/
+or
+cd SimpleWebApp
 > python3 -m venv venv
 > source venv/bin/activate
 > python3 -m pip install --upgrade pip

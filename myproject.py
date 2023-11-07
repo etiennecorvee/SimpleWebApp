@@ -68,15 +68,15 @@ def _get_doc(base64mode=False):
     
     return (dict_out, 200, content_file)
 
-
 @app.route("/")
 def hello():
     return "<h1 style='color:blue'>Hello There!</h1>"
 
-@app.route("/stamp")
+@app.route("/stamp", methods=["POST"])
 def stamp():
     base64mode = False
     (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
+    
     if status_code != 200:
         return jsonify(json_content), status_code
     
@@ -97,7 +97,61 @@ def stamp():
     # extension = Path(filename).suffix # get_file_extension(filename)
     file = File(filename, buffer, file_extension)
     # uid = self.service.create_folder(file)
-    return {"identifier": "1"}, 200
+    return {"identifier": "stamp"}, 200
+
+@app.route("/colour", methods=["POST"])
+def colour():
+    base64mode = False
+    (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
+    
+    if status_code != 200:
+        return jsonify(json_content), status_code
+    
+    if request.content_length == 0:
+        return {"information": "empty binary message"}, 400
+
+    if request.content_type == "application/octet-stream":
+        file_extension = "bin"
+    elif request.content_type in ["image/jpeg", "image/jpg"]:
+        file_extension = "jpeg"
+    elif request.content_type == "image/png":
+        file_extension = "png"
+    else:
+        return {"details": "{} not handled".format(request.content_type)}, 400
+
+    filename = "input." + file_extension
+    buffer = BytesIO(content_file) # (content)
+    # extension = Path(filename).suffix # get_file_extension(filename)
+    file = File(filename, buffer, file_extension)
+    # uid = self.service.create_folder(file)
+    return {"identifier": "colour"}, 200
+
+@app.route("/depth", methods=["POST"])
+def depth():
+    base64mode = False
+    (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
+    
+    if status_code != 200:
+        return jsonify(json_content), status_code
+    
+    if request.content_length == 0:
+        return {"information": "empty binary message"}, 400
+
+    if request.content_type == "application/octet-stream":
+        file_extension = "bin"
+    elif request.content_type in ["image/jpeg", "image/jpg"]:
+        file_extension = "jpeg"
+    elif request.content_type == "image/png":
+        file_extension = "png"
+    else:
+        return {"details": "{} not handled".format(request.content_type)}, 400
+
+    filename = "input." + file_extension
+    buffer = BytesIO(content_file) # (content)
+    # extension = Path(filename).suffix # get_file_extension(filename)
+    file = File(filename, buffer, file_extension)
+    # uid = self.service.create_folder(file)
+    return {"identifier": "depth"}, 200
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
