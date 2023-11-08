@@ -1,13 +1,29 @@
+import os
 from flask import Flask
 from flask import Response, request, jsonify
 from logging import getLogger
 import base64
 from io import BytesIO
 from dataclasses import dataclass
+from uuid import uuid1
 
 logger = getLogger(__name__)
 
 app = Flask(__name__)
+
+upload_folder = "./uploads"
+
+def create_dir(dirpath: str):
+    if os.path.isdir(dirpath) is False:
+        os.mkdir(dirpath)
+    if os.path.isdir(dirpath) is False:
+        return "dirpath does not exist: {}".format(dirpath)
+    return None
+
+if create_dir(dirpath=upload_folder) is not None:
+    logger.error("[ERROR] create dir upload folder failed")
+    print("[ERROR] create dir upload folder failed")
+    exit(1)
 
 @dataclass
 class File:
@@ -15,10 +31,16 @@ class File:
     buffer: BytesIO 
     extension: str
 
-    @property
-    def file(self):
-        self.buffer.seek(0)
-        return self.buffer
+def save_file(upload_folder: str, im_file: File):
+    content=im_file.buffer
+    filename=im_file.name
+    folder_path = upload_folder
+    file_path = os.path.join(folder_path, filename)
+    try:
+        with open(file_path, 'wb') as f:
+            f.write(content.read())
+    except Exception as err:
+        raise Exception("failed writing file: error={}".format(err))
 
 def _get_doc(base64mode=False):
     
@@ -35,6 +57,7 @@ def _get_doc(base64mode=False):
     content_file = None
 
     content_type = request.headers.get('Content-Type')
+    # print("[INFO] received doc: content_type: ", content_type)
     logger.info("/documents content_type received: " + str(content_type))
     accepted_content_type = ["application/octet-stream", "image/jpeg", "image/png"]
     if content_type not in accepted_content_type:
@@ -44,6 +67,7 @@ def _get_doc(base64mode=False):
         return (dict_out, 400, content_file)
 
     nb_bytes = len(request.data) # request.data is of type "bytes"
+    # print("[INFO] received doc: nb_bytes: ", nb_bytes)
     if nb_bytes == 0:
         dict_out["information"] = "cannot upload an empty (" + str(nb_bytes) +  " bytes) input content"
         dict_out["received_bytes"] = nb_bytes
@@ -74,6 +98,45 @@ def hello():
 
 @app.route("/stamp", methods=["POST"])
 def stamp():
+    content_type = request.headers.get('Content-Type')
+    nb_bytes = len(request.data) # request.data is of type "bytes"
+    text = request.data.decode("utf-8")
+    print("[INFO] received stamp: ", content_type, nb_bytes, request.data, text)
+    
+    return {"details": "stamp upload success"}, 200
+
+@app.route("/colour/<stamp>", methods=["POST"])
+def colour(stamp: str):
+    base64mode = False
+    (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
+
+    if status_code != 200:
+        return jsonify(json_content), status_code
+    
+    if request.content_length == 0:
+        return {"information": "empty binary message"}, 400
+
+    if request.content_type == "application/octet-stream":
+        file_extension = "bin"
+    elif request.content_type in ["image/jpeg", "image/jpg"]:
+        file_extension = "jpeg"
+    elif request.content_type == "image/png":
+        file_extension = "png"
+    else:
+        return {"details": "{} not handled".format(request.content_type)}, 400
+
+    filename = stamp + "-colour." + file_extension
+    buffer = BytesIO(content_file) # (content)
+    file = File(filename, buffer, file_extension)
+    try:
+        save_file(upload_folder=upload_folder, im_file=file)
+    except Exception as err:
+        return {"details" : "failed to save file"}, 400
+
+    return {"details": "colour upload success"}, 200
+
+@app.route("/depth/<stamp>", methods=["POST"])
+def depth(stamp: str):
     base64mode = False
     (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
     
@@ -92,66 +155,15 @@ def stamp():
     else:
         return {"details": "{} not handled".format(request.content_type)}, 400
 
-    filename = "input." + file_extension
+    filename = stamp + "-depth." + file_extension
     buffer = BytesIO(content_file) # (content)
-    # extension = Path(filename).suffix # get_file_extension(filename)
     file = File(filename, buffer, file_extension)
-    # uid = self.service.create_folder(file)
-    return {"identifier": "stamp"}, 200
+    try:
+        save_file(upload_folder=upload_folder, im_file=file)
+    except Exception as err:
+        return {"details" : "failed to save file"}, 400
 
-@app.route("/colour", methods=["POST"])
-def colour():
-    base64mode = False
-    (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
-    
-    if status_code != 200:
-        return jsonify(json_content), status_code
-    
-    if request.content_length == 0:
-        return {"information": "empty binary message"}, 400
-
-    if request.content_type == "application/octet-stream":
-        file_extension = "bin"
-    elif request.content_type in ["image/jpeg", "image/jpg"]:
-        file_extension = "jpeg"
-    elif request.content_type == "image/png":
-        file_extension = "png"
-    else:
-        return {"details": "{} not handled".format(request.content_type)}, 400
-
-    filename = "input." + file_extension
-    buffer = BytesIO(content_file) # (content)
-    # extension = Path(filename).suffix # get_file_extension(filename)
-    file = File(filename, buffer, file_extension)
-    # uid = self.service.create_folder(file)
-    return {"identifier": "colour"}, 200
-
-@app.route("/depth", methods=["POST"])
-def depth():
-    base64mode = False
-    (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
-    
-    if status_code != 200:
-        return jsonify(json_content), status_code
-    
-    if request.content_length == 0:
-        return {"information": "empty binary message"}, 400
-
-    if request.content_type == "application/octet-stream":
-        file_extension = "bin"
-    elif request.content_type in ["image/jpeg", "image/jpg"]:
-        file_extension = "jpeg"
-    elif request.content_type == "image/png":
-        file_extension = "png"
-    else:
-        return {"details": "{} not handled".format(request.content_type)}, 400
-
-    filename = "input." + file_extension
-    buffer = BytesIO(content_file) # (content)
-    # extension = Path(filename).suffix # get_file_extension(filename)
-    file = File(filename, buffer, file_extension)
-    # uid = self.service.create_folder(file)
-    return {"identifier": "depth"}, 200
+    return {"details": "depth upload success"}, 200
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0')
