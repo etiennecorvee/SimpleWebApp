@@ -17,10 +17,21 @@ app = Flask(__name__)
 
 upload_folder = "./uploads"
 # process_cmd = ["python3", "simul_mmdetection.py"]
-process_cmd = ["conda", "run", "-n", "openmmlab",
-               "python", "/home/ubuntu/mmdetection/demo/image_demo.py", "/home/ubuntu/mmdetection/demo/demo.jpg",
+process_dir = "/home/ubuntu/mmdetection"
+
+def get_process_cmd(inputImagePath: str):
+    # process_cmd = ["conda", "run", "-n", "openmmlab",
+    #            "python", "/home/ubuntu/mmdetection/demo/image_demo.py", "/home/ubuntu/mmdetection/demo/demo.jpg",
+    #            "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
+    #            "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
+    
+    process_cmd = ["conda", "run", "-n", "openmmlab",
+               "python", "/home/ubuntu/mmdetection/demo/image_demo.py", 
+               inputImagePath,
                "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
                "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
+    
+    return process_cmd
 
 def create_dir(dirpath: str):
     if os.path.isdir(dirpath) is False:
@@ -105,8 +116,15 @@ def _get_doc(base64mode=False):
 def hello():
     return "<h1 style='color:blue'>Hello There!</h1>"
 
-@app.route("/process/<stamp>", methods=["POST"])
-def process(stamp: str):
+@app.route("/process/<colour_filename>", methods=["POST"])
+def process(colour_filename: str):
+    colourPath = os.path.join(upload_folder, colour_filename)
+    try:
+        process_cmd = get_process_cmd(inputImagePath = colourPath)
+    except Exception as err:
+        # raise FileExistsError("colour image filename does not exist: {}: error={}".format(colourPath, err))
+        return {"details": "colour image filename does not exist: {}: error={}".format(colourPath, err)}, 400
+    
     print(" ... cmdline", process_cmd)
     proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
     (out, err) = proc.communicate(timeout=5)
@@ -124,6 +142,16 @@ def process(stamp: str):
         print("[ERROR] process: err", err)
         return {"details": "process failed"}, 400
     else:
+        
+        output_dir = os.path.join(process_dir, "output", "preds")
+        outputfilename = colour_filename.strip(".png") + ".json"
+        jsonPredPath = os.path.join(output_dir, outputfilename)
+        if os.path.isfile(jsonPredPath) is False:
+            # raise FileNotFoundError("mmdetee result predition file does not exist: {}".format())
+            return {"details": "mmdetee result predition file does not exist: {}".format(jsonPredPath)}, 400
+        
+        see TODO.py
+        
         return {"details": "process success"}, 200
 
 @app.route("/stamp", methods=["POST"])
