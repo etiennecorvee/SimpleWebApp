@@ -6,12 +6,20 @@ import base64
 from io import BytesIO
 from dataclasses import dataclass
 from uuid import uuid1
+import subprocess
+
+# loop to launch mmdetectio  or triggered by request ?
+# can i easily add a manager here ... yes deamon ?
 
 logger = getLogger(__name__)
 
 app = Flask(__name__)
 
 upload_folder = "./uploads"
+# process_cmd = ["python3", "simul_mmdetection.py"]
+process_cmd = ["conda", "run", "python", "demo/image_demo.py", "demo/demo.jpg",
+               "rtmdet_tiny_8xb32-300e_coco.py",
+               "--weights", "rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
 
 def create_dir(dirpath: str):
     if os.path.isdir(dirpath) is False:
@@ -95,6 +103,27 @@ def _get_doc(base64mode=False):
 @app.route("/")
 def hello():
     return "<h1 style='color:blue'>Hello There!</h1>"
+
+@app.route("/process/<stamp>", methods=["POST"])
+def process(stamp: str):
+    print(" ... cmdline", process_cmd)
+    proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+    (out, err) = proc.communicate(timeout=5)
+    out = out.decode("utf-8") # bytes to string
+    err = err.decode("utf-8") # bytes to string
+    
+    if out != "":
+        print("[INFO] process: out", out)
+    
+    print(" ... proc.returncode", type(proc.returncode), proc.returncode)
+    if proc.returncode != 0:
+        return {"details": "process failed: returned code {}".format(proc.returncode)}, 400
+    
+    if err != "":
+        print("[ERROR] process: err", err)
+        return {"details": "process failed"}, 400
+    else:
+        return {"details": "process success"}, 200
 
 @app.route("/stamp", methods=["POST"])
 def stamp():
