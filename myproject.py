@@ -17,9 +17,9 @@ app = Flask(__name__)
 
 upload_folder = "./uploads"
 # process_cmd = ["python3", "simul_mmdetection.py"]
-process_cmd = ["conda", "run", "python", "demo/image_demo.py", "demo/demo.jpg",
-               "rtmdet_tiny_8xb32-300e_coco.py",
-               "--weights", "rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
+process_cmd = ["conda", "run", "python", "/home/ubuntu/mmdetection/demo/image_demo.py", "/home/ubuntu/mmdetection/demo/demo.jpg",
+               "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
+               "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
 
 def create_dir(dirpath: str):
     if os.path.isdir(dirpath) is False:
