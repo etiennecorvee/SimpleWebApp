@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
 # process_cmd = ["python3", "simul_mmdetection.py"]
-process_dir = "/home/ubuntu/mmdetection"
+process_output_dir = "/home/ubuntu/mmdetection"
 
 def get_process_cmd(inputImagePath: str):
     # process_cmd = ["conda", "run", "-n", "openmmlab",
@@ -31,7 +31,14 @@ def get_process_cmd(inputImagePath: str):
                "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
                "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
     
+    print("command line:")
+    for i in process_cmd:
+        print(i, end=" ")
+    print("\n")
+    
     return process_cmd
+
+get_process_cmd(inputImagePath="<inputImagePath>")
 
 def create_dir(dirpath: str):
     if os.path.isdir(dirpath) is False:
@@ -128,7 +135,7 @@ def process(colour_filename: str):
         return {"details": "colour image filename does not exist: {}: error={}".format(colourPath, err)}, 400
     
     print(" ... cmdline", process_cmd)
-    proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+    proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     (out, err) = proc.communicate(timeout=5)
     out = out.decode("utf-8") # bytes to string
     err = err.decode("utf-8") # bytes to string
@@ -138,14 +145,14 @@ def process(colour_filename: str):
     
     print(" ... proc.returncode", type(proc.returncode), proc.returncode)
     if proc.returncode != 0:
-        return {"details": "process failed: returned code {}".format(proc.returncode)}, 400
+        return {"details": "process failed: returned code {} error={}".format(proc.returncode, err)}, 400
     
     if err != "":
         print("[ERROR] process: err", err)
         return {"details": "process failed"}, 400
     else:
         
-        output_dir = os.path.join(process_dir, "output", "preds")
+        output_dir = os.path.join(process_output_dir, "output", "preds")
         outputfilename = colour_filename.strip(".png") + ".json"
         jsonPredPath = os.path.join(output_dir, outputfilename)
         if os.path.isfile(jsonPredPath) is False:
