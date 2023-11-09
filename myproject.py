@@ -17,7 +17,7 @@ app = Flask(__name__)
 
 upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
 # process_cmd = ["python3", "simul_mmdetection.py"]
-process_output_dir = "/home/ubuntu/mmdetection"
+process_output_dir = "/home/ubuntu/SimpleWebApp"
 
 def get_process_cmd(inputImagePath: str):
     # process_cmd = ["conda", "run", "-n", "openmmlab",
