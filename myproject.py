@@ -25,7 +25,7 @@ def get_process_cmd(inputImagePath: str):
     #            "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
     #            "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
     
-    process_cmd = ["conda", "run", "-n", "openmmlab",
+    process_cmd = ["/home/ubuntu/miniconda3/bin/conda", "run", "-n", "openmmlab",
                "python", "/home/ubuntu/mmdetection/demo/image_demo.py", 
                inputImagePath,
                "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
