@@ -165,8 +165,8 @@ def stamp():
     
     return {"details": "stamp upload success"}, 200
 
-@app.route("/colour/<stamp>", methods=["POST"])
-def colour(stamp: str):
+@app.route("/colour/<colourstem>", methods=["POST"])
+def colour(colourstem: str):
     base64mode = False
     (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
 
@@ -185,7 +185,8 @@ def colour(stamp: str):
     else:
         return {"details": "{} not handled".format(request.content_type)}, 400
 
-    filename = stamp + "-colour." + file_extension
+    # filename = stamp + "-colour." + file_extension
+    filename = colourstem + "." + file_extension
     buffer = BytesIO(content_file) # (content)
     file = File(filename, buffer, file_extension)
     try:
@@ -195,8 +196,8 @@ def colour(stamp: str):
 
     return {"details": "colour upload success"}, 200
 
-@app.route("/depth/<stamp>", methods=["POST"])
-def depth(stamp: str):
+@app.route("/depth/<depthstem>", methods=["POST"])
+def depth(depthstem: str):
     base64mode = False
     (json_content, status_code, content_file) = _get_doc(base64mode=base64mode)
     
@@ -215,7 +216,8 @@ def depth(stamp: str):
     else:
         return {"details": "{} not handled".format(request.content_type)}, 400
 
-    filename = stamp + "-depth." + file_extension
+    # filename = stamp + "-depth." + file_extension
+    filename = depthstem + "." + file_extension
     buffer = BytesIO(content_file) # (content)
     file = File(filename, buffer, file_extension)
     try:
