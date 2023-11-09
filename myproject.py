@@ -152,7 +152,7 @@ def process(colour_filename: str):
         return {"details": "process failed"}, 400
     else:
         
-        output_dir = os.path.join(process_output_dir, "output", "preds")
+        output_dir = os.path.join(process_output_dir, "outputs", "preds")
         outputfilename = colour_filename.strip(".png") + ".json"
         jsonPredPath = os.path.join(output_dir, outputfilename)
         if os.path.isfile(jsonPredPath) is False:
