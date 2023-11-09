@@ -15,7 +15,7 @@ logger = getLogger(__name__)
 
 app = Flask(__name__)
 
-upload_folder = "./uploads"
+upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
 # process_cmd = ["python3", "simul_mmdetection.py"]
 process_dir = "/home/ubuntu/mmdetection"
 
