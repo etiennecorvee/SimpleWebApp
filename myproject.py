@@ -119,6 +119,8 @@ def hello():
 @app.route("/process/<colour_filename>", methods=["POST"])
 def process(colour_filename: str):
     colourPath = os.path.join(upload_folder, colour_filename)
+    if os.path.isfile(colourPath) is False:
+        return {"details": "colour image path does not exist: {}".format(colourPath)}, 400
     try:
         process_cmd = get_process_cmd(inputImagePath = colourPath)
     except Exception as err:
