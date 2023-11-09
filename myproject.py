@@ -19,26 +19,26 @@ upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
 # process_cmd = ["python3", "simul_mmdetection.py"]
 process_output_dir = "/home/ubuntu/SimpleWebApp"
 
-def get_process_cmd(inputImagePath: str):
-    # process_cmd = ["conda", "run", "-n", "openmmlab",
-    #            "python", "/home/ubuntu/mmdetection/demo/image_demo.py", "/home/ubuntu/mmdetection/demo/demo.jpg",
-    #            "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
-    #            "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
+# def get_process_cmd(inputImagePath: str):
+#     # process_cmd = ["conda", "run", "-n", "openmmlab",
+#     #            "python", "/home/ubuntu/mmdetection/demo/image_demo.py", "/home/ubuntu/mmdetection/demo/demo.jpg",
+#     #            "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
+#     #            "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
     
-    process_cmd = ["/home/ubuntu/miniconda3/bin/conda", "run", "-n", "openmmlab",
-               "python", "/home/ubuntu/mmdetection/demo/image_demo.py", 
-               inputImagePath,
-               "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
-               "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
+#     process_cmd = ["/home/ubuntu/miniconda3/bin/conda", "run", "-n", "openmmlab",
+#                "python", "/home/ubuntu/mmdetection/demo/image_demo.py", 
+#                inputImagePath,
+#                "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
+#                "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
     
-    print("command line:")
-    for i in process_cmd:
-        print(i, end=" ")
-    print("\n")
+#     print("command line:")
+#     for i in process_cmd:
+#         print(i, end=" ")
+#     print("\n")
     
-    return process_cmd
+#     return process_cmd
 
-get_process_cmd(inputImagePath="<inputImagePath>")
+# get_process_cmd(inputImagePath="<inputImagePath>")
 
 def create_dir(dirpath: str):
     if os.path.isdir(dirpath) is False:
@@ -128,30 +128,24 @@ def process(colour_filename: str):
     colourPath = os.path.join(upload_folder, colour_filename)
     if os.path.isfile(colourPath) is False:
         return {"details": "colour image path does not exist: {}".format(colourPath)}, 400
-    try:
-        process_cmd = get_process_cmd(inputImagePath = colourPath)
-    except Exception as err:
-        # raise FileExistsError("colour image filename does not exist: {}: error={}".format(colourPath, err))
-        return {"details": "colour image filename does not exist: {}: error={}".format(colourPath, err)}, 400
     
-    print(" ... cmdline", process_cmd)
-    proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    (out, err) = proc.communicate(timeout=5)
-    out = out.decode("utf-8") # bytes to string
-    err = err.decode("utf-8") # bytes to string
-    
-    if out != "":
-        print("[INFO] process: out", out)
-    
-    print(" ... proc.returncode", type(proc.returncode), proc.returncode)
-    if proc.returncode != 0:
-        return {"details": "process failed: returned code {} error={}".format(proc.returncode, err)}, 400
-    
-    if err != "":
-        print("[ERROR] process: err", err)
-        return {"details": "process failed"}, 400
+    output = subprocess.run('''python -c "import sys; print(sys.executable)"
+                  source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
+                  conda activate openmmlab
+                  python /home/ubuntu/mmdetection/demo/image_demo.py /home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py --weights /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth --device cpu''', executable='/bin/bash', shell=True, capture_output=True)
+
+    # print(" ... stdout")
+    # print(bytes.decode(output.stdout))
+    # print(" ... stderr")
+    # print(bytes.decode(output.stderr))
+    # print(" ... return code", output.returncode)
+    if output.returncode != 0:
+        print(" ... stdout")
+        print(bytes.decode(output.stdout))
+        print(" ... stderr")
+        print(bytes.decode(output.stderr))
+        return {"details": "process failed: returned code {} error={}".format(output.returncode, bytes.decode(output.stderr))}, 400
     else:
-        
         output_dir = os.path.join(process_output_dir, "outputs", "preds")
         outputfilename = colour_filename.strip(".png") + ".json"
         jsonPredPath = os.path.join(output_dir, outputfilename)
@@ -162,6 +156,41 @@ def process(colour_filename: str):
         # see TODO.py
         
         return {"details": "process success"}, 200
+    
+    # try:
+    #     process_cmd = get_process_cmd(inputImagePath = colourPath)
+    # except Exception as err:
+    #     # raise FileExistsError("colour image filename does not exist: {}: error={}".format(colourPath, err))
+    #     return {"details": "colour image filename does not exist: {}: error={}".format(colourPath, err)}, 400
+    
+    # print(" ... cmdline", process_cmd)
+    # proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    # (out, err) = proc.communicate(timeout=5)
+    # out = out.decode("utf-8") # bytes to string
+    # err = err.decode("utf-8") # bytes to string
+    
+    # if out != "":
+    #     print("[INFO] process: out", out)
+    
+    # print(" ... proc.returncode", type(proc.returncode), proc.returncode)
+    # if proc.returncode != 0:
+    #     return {"details": "process failed: returned code {} error={}".format(proc.returncode, err)}, 400
+    
+    # if err != "":
+    #     print("[ERROR] process: err", err)
+    #     return {"details": "process failed"}, 400
+    # else:
+        
+    #     output_dir = os.path.join(process_output_dir, "outputs", "preds")
+    #     outputfilename = colour_filename.strip(".png") + ".json"
+    #     jsonPredPath = os.path.join(output_dir, outputfilename)
+    #     if os.path.isfile(jsonPredPath) is False:
+    #         # raise FileNotFoundError("mmdetee result predition file does not exist: {}".format())
+    #         return {"details": "mmdetee result predition file does not exist: {}".format(jsonPredPath)}, 400
+        
+    #     # see TODO.py
+        
+    #     return {"details": "process success"}, 200
 
 @app.route("/stamp", methods=["POST"])
 def stamp():
