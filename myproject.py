@@ -150,7 +150,7 @@ def process(colour_filename: str):
             # raise FileNotFoundError("mmdetee result predition file does not exist: {}".format())
             return {"details": "mmdetee result predition file does not exist: {}".format(jsonPredPath)}, 400
         
-        see TODO.py
+        # see TODO.py
         
         return {"details": "process success"}, 200
 
