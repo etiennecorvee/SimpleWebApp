@@ -1,4 +1,5 @@
 import os
+import json
 from flask import Flask
 from flask import Response, request, jsonify
 from logging import getLogger
@@ -7,6 +8,7 @@ from io import BytesIO
 from dataclasses import dataclass
 from uuid import uuid1
 import subprocess
+import pathlib
 
 # loop to launch mmdetectio  or triggered by request ?
 # can i easily add a manager here ... yes deamon ?
@@ -129,10 +131,19 @@ def process(colour_filename: str):
     if os.path.isfile(colourPath) is False:
         return {"details": "colour image path does not exist: {}".format(colourPath)}, 400
     
-    output = subprocess.run('''python -c "import sys; print(sys.executable)"
+    # cmd_line = '''python -c "import sys; print(sys.executable)"
+    #               source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
+    #               conda activate openmmlab
+    #               python /home/ubuntu/mmdetection/demo/image_demo.py /home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py --weights /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth --device cpu'''
+    
+    cmd_line = '''python -c "import sys; print(sys.executable)"
                   source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
                   conda activate openmmlab
-                  python /home/ubuntu/mmdetection/demo/image_demo.py /home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py --weights /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth --device cpu''', executable='/bin/bash', shell=True, capture_output=True)
+                  python /home/ubuntu/mmdetection/demo/image_demo.py {} /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py --weights /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth --device cpu'''.format(colourPath)
+    
+    print(" ... cmd_line => ", cmd_line)
+    
+    output = subprocess.run(cmd_line, executable='/bin/bash', shell=True, capture_output=True)
 
     # print(" ... stdout")
     # print(bytes.decode(output.stdout))
@@ -155,7 +166,19 @@ def process(colour_filename: str):
         
         # see TODO.py
         
-        return {"details": "process success"}, 200
+        inputPath = os.path.abspath(colourPath)
+        outputPath = inputPath.replace(pathlib.Path(inputPath).suffix, ".mm")
+        try:
+            with open(outputPath, "r") as fin:
+                data = json.loads(fin.read())
+        except Exception as err:
+            msg = "[ERROR] could not parse json file: {}: error={}".format(outputPath, err)
+            return {"details": "mmedetection failed: {}".format(msg)}, 400
+        
+        print(" ... data", data)
+        return { "details": json.dumps(data) }, 200  
+        # return {"details": "process success"}, 200
+    return {"details": "failure"}, 400
     
     # try:
     #     process_cmd = get_process_cmd(inputImagePath = colourPath)
