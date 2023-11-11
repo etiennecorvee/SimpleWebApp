@@ -1,5 +1,8 @@
 # SimpleWebApp
 
+in ovh vm: mmdetection v3.2.0: replace demo/demo_image.py by our mmdetection.py
+
+
 https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04
 
 > mkdir myproject

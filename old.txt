@@ -1,6 +1,8 @@
-https://vinleonardo.com/detecting-objects-in-pictures-and-extracting-their-data-using-mmdetection/
+# too old : v2.28: https://vinleonardo.com/detecting-objects-in-pictures-and-extracting-their-data-using-mmdetection/
 
 
+
+in demo/image.py
 
 result = inference_detector(model, img_path)
 
