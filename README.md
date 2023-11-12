@@ -13,7 +13,7 @@ cd SimpleWebApp
 > python3 -m venv venv
 > source venv/bin/activate
 > python3 -m pip install --upgrade pip
-> pip install gunicorn flask
+> pip install gunicorn flask requests opencv-python
 
 > vi myproject.py
     from flask import Flask

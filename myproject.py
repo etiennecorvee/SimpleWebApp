@@ -11,6 +11,7 @@ from uuid import uuid1
 import subprocess
 import pathlib
 import requests
+import cv2
 
 from utils import parse_stamped_filename
 
@@ -319,7 +320,7 @@ def result_api(camId: str):
     max_st_mtime = 0.0
     corr_filename = None
     for filename in os.listdir(upload_folder):
-        print(filename)
+        # print(filename)
         st_mtime = parse_stamped_filename(upload_folder=upload_folder, 
                                           filename=filename, 
                                           ext_with_dot=".png", 
@@ -334,7 +335,46 @@ def result_api(camId: str):
                 corr_filename = filename
     
     if corr_filename is not None:
-        return _get_image_content_b64(os.path.join(upload_folder, corr_filename))
+        
+        mmfile = corr_filename.strip( pathlib.Path(corr_filename).suffix)
+        print(" ... mmfile", mmfile)
+        mmfile = mmfile.strip("-depth")
+        print(" ... mmfile", mmfile)
+        mmfile += "-colour.mm"
+        mmfile = os.path.join(upload_folder, mmfile)
+        
+        
+        displayImagPath = os.path.join(upload_folder, corr_filename)
+        
+        print(" .. mmfile", mmfile)
+        if os.path.isfile(mmfile) is True:
+            displayImg = cv2.imread(displayImagPath)
+            print(" .. exist")
+            with open(mmfile, "r") as fjson:
+                data = json.loads(fjson.read())
+                print(" ... mmdetection data", data)
+                try:
+                    for obj in data['predictions']:
+                        if obj['class'] == 'person':
+                            left = int(obj['bbox'][0])
+                            top = int(obj['bbox'][1])  
+                            right = int(obj['bbox'][2])
+                            bottom = int(obj['bbox'][3])
+                            cv2.rectangle(displayImg, (left, top), (right, bottom), (25,50,200), 2)
+                            cv2.putText(img = displayImg, text = obj['class'],
+                                org = (left, top),
+                                fontFace = cv2.FONT_HERSHEY_DUPLEX,
+                                fontScale = 1.0,
+                                color = (125, 246, 55),
+                                thickness = 2)
+                        # TODO use a specific name
+                    cv2.imwrite(filename="temp.png", img=displayImg)
+                    displayImagPath = "temp.png"
+                except Exception as err:
+                    print("[ERROR] {}".format(err))
+                    return _get_image_content_b64("error.png")
+        
+        return _get_image_content_b64(displayImagPath)
     else:
         return _get_image_content_b64("empty.png")
     # imagepath = "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png"

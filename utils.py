@@ -10,16 +10,19 @@ def parse_stamped_filename(upload_folder: str, filename: str, ext_with_dot: str,
         day = day_temps[0]
         temps = day_temps[1]
         if debug is True:
-            print(" ... len 2 ok: day, temps", day, temps, "chute_d-" in day, ".txt" in temps)
+            print(" ... len 2 ok: day, temps", day, temps, "chute_d-" in day, res_type in temps)
         if res_type in temps:
         
             if debug is True:
-                print(" ... day, temps", day, temps, "chute_d-" in day, ".txt" in temps)
+                print(" ... day, temps", day, temps, "chute_d-" in day, res_type in temps)
             if "chute_d-" in day and ext_with_dot in temps:
                 day = day.strip("chute_d-")
                 temps = temps.strip(ext_with_dot)
                 day_parts = day.split("-")
-                temps_parts = temps.split(":")
+                
+                # temps_parts = temps.split(":")
+                temps_parts = temps.split("-")
+                
                 if debug is True:
                     print(" ... chute, day, temps", day_parts, temps_parts)
                 if len(day_parts) == 3 and len(temps_parts) == 3:
