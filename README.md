@@ -1,7 +1,6 @@
 # SimpleWebApp
 
-in ovh vm: mmdetection v3.2.0: replace demo/demo_image.py by our mmdetection.py
-
+## Install
 
 https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04
 
@@ -64,3 +63,16 @@ WantedBy=multi-user.target  150  sudo systemctl start myproject
 test from outside http://127.0.0.1:5001/
 
 this works from any cloud VM such as OVH
+
+## Test
+
+### 
+
+> cd /home/ubuntu/EcoVision/STAND_ALONE_ECO3D/platform/prog
+> bash manager.sh
+
+### simulation
+simulate with one existing fall detection availbale results:
+chute_d-2023-11-01T13:04:39.014000-nbp1-colour.mm
+
+curl -X POST http://localhost:5002/process/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png

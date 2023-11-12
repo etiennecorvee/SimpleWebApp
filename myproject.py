@@ -1,7 +1,8 @@
 import os
 import json
 from flask import Flask
-from flask import Response, request, jsonify
+from flask import Response, request, jsonify, render_template, make_response
+from werkzeug.utils import secure_filename
 from logging import getLogger
 import base64
 from io import BytesIO
@@ -9,6 +10,9 @@ from dataclasses import dataclass
 from uuid import uuid1
 import subprocess
 import pathlib
+import requests
+
+from utils import parse_stamped_filename
 
 # loop to launch mmdetectio  or triggered by request ?
 # can i easily add a manager here ... yes deamon ?
@@ -20,6 +24,8 @@ app = Flask(__name__)
 upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
 # process_cmd = ["python3", "simul_mmdetection.py"]
 process_output_dir = "/home/ubuntu/SimpleWebApp"
+
+app.config['UPLOAD'] = upload_folder
 
 # def get_process_cmd(inputImagePath: str):
 #     # process_cmd = ["conda", "run", "-n", "openmmlab",
@@ -121,9 +127,13 @@ def _get_doc(base64mode=False):
     
     return (dict_out, 200, content_file)
 
-@app.route("/")
+@app.route("/hello")
 def hello():
     return "<h1 style='color:blue'>Hello There!</h1>"
+
+@app.route("/")
+def upload_file():
+    return render_template('img_render.html')
 
 @app.route("/process/<colour_filename>", methods=["POST"])
 def process(colour_filename: str):
@@ -284,7 +294,57 @@ def depth(depthstem: str):
     except Exception as err:
         return {"details" : "failed to save file"}, 400
 
+    # print(" ... filename", filename)
+    # filename = secure_filename(filename)
+    # print(" ... filename", filename)
+    # img = os.path.join(app.config['UPLOAD'], filename)
+    # print(" ... img", img)
+    # return render_template('img_render.html', img=img)
+
     return {"details": "depth upload success"}, 200
 
+def _get_image_content_b64(imagepath: str) -> str:
+    with open(imagepath, "rb") as fin:
+        content = fin.read() # bytes
+        image_b = base64.b64encode(content) # image_b.read())
+        image_b64 = image_b.decode('utf-8')
+        # print(" ... content", type(content), type(image_b), type(image_b64)) #  <class 'bytes'> <class 'bytes'> <class 'str'>
+        return image_b64
+
+@app.route('/result/<string:camId>', methods=['GET'])
+def result_api(camId: str):
+    
+    # print(" ... result")
+    
+    max_st_mtime = 0.0
+    corr_filename = None
+    for filename in os.listdir(upload_folder):
+        print(filename)
+        st_mtime = parse_stamped_filename(upload_folder=upload_folder, 
+                                          filename=filename, 
+                                          ext_with_dot=".png", 
+                                          res_type="depth", 
+                                          debug=False)
+        # if st_mtime is None:
+        #     return _get_image_content_b64("error.png")
+        if st_mtime is not None:
+            # print(" ... st_mtime", st_mtime, max_st_mtime)
+            if st_mtime > max_st_mtime:
+                max_st_mtime = st_mtime
+                corr_filename = filename
+    
+    if corr_filename is not None:
+        return _get_image_content_b64(os.path.join(upload_folder, corr_filename))
+    else:
+        return _get_image_content_b64("empty.png")
+    # imagepath = "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png"
+    # with open(imagepath, "rb") as fin:
+    #     content = fin.read() # bytes
+    #     image_b = base64.b64encode(content) # image_b.read())
+    #     image_b64 = image_b.decode('utf-8')
+    #     print(" ... content", type(content), type(image_b), type(image_b64))
+    #     return image_b64
+    #     # BytesIO
+
 if __name__ == "__main__":
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=5002)
