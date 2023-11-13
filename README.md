@@ -9,7 +9,7 @@ or
 git clone https://github.com/etiennecorvee/SimpleWebApp.git
 > cd myproject/
 or
-cd SimpleWebApp
+> cd SimpleWebApp
 > python3 -m venv venv
 > source venv/bin/activate
 > python3 -m pip install --upgrade pip

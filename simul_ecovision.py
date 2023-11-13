@@ -54,7 +54,7 @@ def SendItToCloudServer(url_address: str, timeout: int, stamp: str, depth: str, 
         except Exception as err:
             raise FileExistsError("SendItToCloudServer failed process error={}".format(err))
 
-SendItToCloudServer(url_address="http://127.0.0.1:5002", timeout=10,
+SendItToCloudServer(url_address="http://127.0.0.1:5001", timeout=10,
                     stamp="/home/ubuntu/EcoVision/ecolog/chute_d-2023-11-01T13:04:39.014000.txt", # this does not have to exist
                     colour=None, # "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
                     depth="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")
