@@ -269,7 +269,7 @@ def stamp():
     content_type = request.headers.get('Content-Type')
     nb_bytes = len(request.data) # request.data is of type "bytes"
     textData = request.data.decode("utf-8")
-    print("[INFO] received stamp: ", content_type, nb_bytes, request.data, textData)
+    print("[INFO] received stamp: ", content_type, nb_bytes, request.data, " => '{}'".format(textData))
     
     filename = os.path.join(upload_folder, textData + ".txt")
     try:
