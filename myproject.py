@@ -49,8 +49,8 @@ app = Flask(__name__)
 
 DEBUG = True
 
-upload_folder = "/home/ubuntu/SimpleWebApp/last"
-last_folder = "/home/ubuntu/SimpleWebApp/uploads/last"
+upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
+last_folder = "/home/ubuntu/SimpleWebApp/last"
 processed_folder = "/home/ubuntu/SimpleWebApp/processed"
 failed_mm_folder = "/home/ubuntu/SimpleWebApp/failed_mm"
 
@@ -268,10 +268,10 @@ def process(colour_filename: str):
 def stamp():
     content_type = request.headers.get('Content-Type')
     nb_bytes = len(request.data) # request.data is of type "bytes"
-    text = request.data.decode("utf-8")
-    print("[INFO] received stamp: ", content_type, nb_bytes, request.data, text)
+    textData = request.data.decode("utf-8")
+    print("[INFO] received stamp: ", content_type, nb_bytes, request.data, textData)
     
-    filename = os.path.join(upload_folder, text + ".txt")
+    filename = os.path.join(upload_folder, textData + ".txt")
     try:
         with open(filename, "w") as fout:
             print("[INFO] creating simple stamp file ", filename)
