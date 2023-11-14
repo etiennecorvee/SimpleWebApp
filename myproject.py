@@ -12,42 +12,51 @@ import subprocess
 import pathlib
 import requests
 import cv2
+from utils import parse_stamped_filename, get_stat_time, get_3_filenames_from_colour_name, move_file
 
-from utils import parse_stamped_filename
+'''
+/stamp POST
+  => /uploads/stamp.txt
+  
+/colour POST
+  => /uploads/stamp-colour.png
+  
+/depth POST
+  => /uploads/stamp-depth.png
 
-# loop to launch mmdetectio  or triggered by request ?
-# can i easily add a manager here ... yes deamon ?
+if colour sent from RGBD
+/process/<stamped_colour>
+ /uploads/stamp-colour.png => mmdetection => /uploads/stamp-colour.mm
+   ok: move /uploads/stamp + colour + depth + mm => /processed
+   ko: move /uploads/stamp + colour + depth => failed_mm
+ 
+if no colour sent from RGBD
+/nocolour/<stamp>
+  move /uploads/stamp + colour + depth => /processed
+
+/result GET  <=  html page request every N sec
+  TODO display latest from timestamp filename not stat
+
+TODO night case : no object detected at all in mm => <=> nocolour
+
+TODO purge: if filename too old => moved to /backup_results
+
+'''
 
 logger = getLogger(__name__)
 
 app = Flask(__name__)
 
 upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
+processed_folder = "/home/ubuntu/SimpleWebApp/processed"
+failed_mm_folder = "/home/ubuntu/SimpleWebApp/failed_mm"
+
 # process_cmd = ["python3", "simul_mmdetection.py"]
 process_output_dir = "/home/ubuntu/SimpleWebApp"
 
 app.config['UPLOAD'] = upload_folder
-
-# def get_process_cmd(inputImagePath: str):
-#     # process_cmd = ["conda", "run", "-n", "openmmlab",
-#     #            "python", "/home/ubuntu/mmdetection/demo/image_demo.py", "/home/ubuntu/mmdetection/demo/demo.jpg",
-#     #            "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
-#     #            "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
-    
-#     process_cmd = ["/home/ubuntu/miniconda3/bin/conda", "run", "-n", "openmmlab",
-#                "python", "/home/ubuntu/mmdetection/demo/image_demo.py", 
-#                inputImagePath,
-#                "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
-#                "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
-    
-#     print("command line:")
-#     for i in process_cmd:
-#         print(i, end=" ")
-#     print("\n")
-    
-#     return process_cmd
-
-# get_process_cmd(inputImagePath="<inputImagePath>")
+app.config['PROCESSED'] = processed_folder
+app.config['FAILED_MM'] = failed_mm_folder
 
 def create_dir(dirpath: str):
     if os.path.isdir(dirpath) is False:
@@ -56,10 +65,11 @@ def create_dir(dirpath: str):
         return "dirpath does not exist: {}".format(dirpath)
     return None
 
-if create_dir(dirpath=upload_folder) is not None:
-    logger.error("[ERROR] create dir upload folder failed")
-    print("[ERROR] create dir upload folder failed")
-    exit(1)
+for folder in [app.config['UPLOAD'], app.config['PROCESSED'], app.config['FAILED_MM']]:
+    if create_dir(dirpath=folder) is not None:
+        logger.error("[ERROR] create dir {} failed".format(folder))
+        print("[ERROR] create dir {} failed".format(folder))
+        exit(1)
 
 @dataclass
 class File:
@@ -136,16 +146,33 @@ def hello():
 def upload_file():
     return render_template('img_render.html')
 
+@app.route("/nocolour/<colour_filename>", methods=["POST"])
+def nocolour(colour_filename: str):
+    try:
+        threefiles = get_3_filenames_from_colour_name(colour_filename=colour_filename)
+    except Exception as err:
+        return {"details": "nocolour case: getting the 3 filenames failed with error: {}".format(err)}, 400
+    
+    # move only the stamp and depth
+    for index in range(2):
+        src = os.path.join(app.config['UPLOAD'], threefiles[index])
+        dst = os.path.join(app.config['PROCESSED'], threefiles[index])
+        try:
+            move_file(src=src, dst=dst)
+        except Exception as err:
+            return {"details": "noclour case: ok but moving file failed: {}".format(err)}, 400
+
 @app.route("/process/<colour_filename>", methods=["POST"])
 def process(colour_filename: str):
     colourPath = os.path.join(upload_folder, colour_filename)
     if os.path.isfile(colourPath) is False:
         return {"details": "colour image path does not exist: {}".format(colourPath)}, 400
     
-    # cmd_line = '''python -c "import sys; print(sys.executable)"
-    #               source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
-    #               conda activate openmmlab
-    #               python /home/ubuntu/mmdetection/demo/image_demo.py /home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py --weights /home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth --device cpu'''
+    try:
+        threefiles = get_3_filenames_from_colour_name(colour_filename=colour_filename)
+    except Exception as err:
+        # colour image to be moved to failed folder ?
+        return {"details": "mmdetection ok but getting the 3 filenames failed with error: {}".format(err)}, 400
     
     cmd_line = '''python -c "import sys; print(sys.executable)"
                   source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
@@ -166,6 +193,15 @@ def process(colour_filename: str):
         print(bytes.decode(output.stdout))
         print(" ... stderr")
         print(bytes.decode(output.stderr))
+        
+        for filename in threefiles:
+            src = os.path.join(app.config['UPLOAD'], filename)
+            dst = os.path.join(app.config['FAILED_MM'], filename)
+            try:
+                move_file(src=src, dst=dst)
+            except Exception as err:
+                return {"details": "mmdetection ok but moving file failed: {}".format(err)}, 400
+        
         return {"details": "process failed: returned code {} error={}".format(output.returncode, bytes.decode(output.stderr))}, 400
     else:
         output_dir = os.path.join(process_output_dir, "outputs", "preds")
@@ -187,44 +223,18 @@ def process(colour_filename: str):
             return {"details": "mmedetection failed: {}".format(msg)}, 400
         
         print(" ... data", data)
+        
+        for filename in threefiles:
+            src = os.path.join(app.config['UPLOAD'], filename)
+            dst = os.path.join(app.config['PROCESSED'], filename)
+            try:
+                move_file(src=src, dst=dst)
+            except Exception as err:
+                return {"details": "mmdetection ok but moving file failed: {}".format(err)}, 400
+        
         return { "details": json.dumps(data) }, 200  
         # return {"details": "process success"}, 200
     return {"details": "failure"}, 400
-    
-    # try:
-    #     process_cmd = get_process_cmd(inputImagePath = colourPath)
-    # except Exception as err:
-    #     # raise FileExistsError("colour image filename does not exist: {}: error={}".format(colourPath, err))
-    #     return {"details": "colour image filename does not exist: {}: error={}".format(colourPath, err)}, 400
-    
-    # print(" ... cmdline", process_cmd)
-    # proc = subprocess.Popen(process_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    # (out, err) = proc.communicate(timeout=5)
-    # out = out.decode("utf-8") # bytes to string
-    # err = err.decode("utf-8") # bytes to string
-    
-    # if out != "":
-    #     print("[INFO] process: out", out)
-    
-    # print(" ... proc.returncode", type(proc.returncode), proc.returncode)
-    # if proc.returncode != 0:
-    #     return {"details": "process failed: returned code {} error={}".format(proc.returncode, err)}, 400
-    
-    # if err != "":
-    #     print("[ERROR] process: err", err)
-    #     return {"details": "process failed"}, 400
-    # else:
-        
-    #     output_dir = os.path.join(process_output_dir, "outputs", "preds")
-    #     outputfilename = colour_filename.strip(".png") + ".json"
-    #     jsonPredPath = os.path.join(output_dir, outputfilename)
-    #     if os.path.isfile(jsonPredPath) is False:
-    #         # raise FileNotFoundError("mmdetee result predition file does not exist: {}".format())
-    #         return {"details": "mmdetee result predition file does not exist: {}".format(jsonPredPath)}, 400
-        
-    #     # see TODO.py
-        
-    #     return {"details": "process success"}, 200
 
 @app.route("/stamp", methods=["POST"])
 def stamp():
@@ -232,6 +242,14 @@ def stamp():
     nb_bytes = len(request.data) # request.data is of type "bytes"
     text = request.data.decode("utf-8")
     print("[INFO] received stamp: ", content_type, nb_bytes, request.data, text)
+    
+    filename = os.path.join(upload_folder, text + ".txt")
+    try:
+        with open(filename, "w") as fout:
+            print("[INFO] creating simple stamp file ", filename)
+    except Exception as err:
+        msg = "[ERROR] could not create output file {} error={}".format(filename, err)
+        return {"details": msg}, 400
     
     return {"details": "stamp upload success"}, 200
 
@@ -316,23 +334,18 @@ def _get_image_content_b64(imagepath: str) -> str:
 def result_api(camId: str):
     
     # print(" ... result")
-    
     max_st_mtime = 0.0
     corr_filename = None
     for filename in os.listdir(upload_folder):
         # print(filename)
-        st_mtime = parse_stamped_filename(upload_folder=upload_folder, 
-                                          filename=filename, 
-                                          ext_with_dot=".png", 
-                                          res_type="depth", 
-                                          debug=False)
-        # if st_mtime is None:
-        #     return _get_image_content_b64("error.png")
-        if st_mtime is not None:
-            # print(" ... st_mtime", st_mtime, max_st_mtime)
+        try:
+            parse_stamped_filename(filename=filename, ext_with_dot=".png", res_type="depth", debug=False)
+            st_mtime = get_stat_time(filepath = os.path.join(upload_folder, filename))
             if st_mtime > max_st_mtime:
                 max_st_mtime = st_mtime
                 corr_filename = filename
+        except Exception as warn:
+            print("[INFO]{}".format(warn))
     
     if corr_filename is not None:
         
@@ -342,7 +355,6 @@ def result_api(camId: str):
         print(" ... mmfile", mmfile)
         mmfile += "-colour.mm"
         mmfile = os.path.join(upload_folder, mmfile)
-        
         
         displayImagPath = os.path.join(upload_folder, corr_filename)
         
@@ -372,19 +384,11 @@ def result_api(camId: str):
                     displayImagPath = "temp.png"
                 except Exception as err:
                     print("[ERROR] {}".format(err))
-                    return _get_image_content_b64("error.png")
+                    return _get_image_content_b64("images/error.png")
         
         return _get_image_content_b64(displayImagPath)
     else:
-        return _get_image_content_b64("empty.png")
-    # imagepath = "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png"
-    # with open(imagepath, "rb") as fin:
-    #     content = fin.read() # bytes
-    #     image_b = base64.b64encode(content) # image_b.read())
-    #     image_b64 = image_b.decode('utf-8')
-    #     print(" ... content", type(content), type(image_b), type(image_b64))
-    #     return image_b64
-    #     # BytesIO
+        return _get_image_content_b64("images/empty.png")
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)

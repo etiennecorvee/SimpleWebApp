@@ -1,3 +1,30 @@
+# def get_process_cmd(inputImagePath: str):
+#     # process_cmd = ["conda", "run", "-n", "openmmlab",
+#     #            "python", "/home/ubuntu/mmdetection/demo/image_demo.py", "/home/ubuntu/mmdetection/demo/demo.jpg",
+#     #            "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
+#     #            "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
+    
+#     process_cmd = ["/home/ubuntu/miniconda3/bin/conda", "run", "-n", "openmmlab",
+#                "python", "/home/ubuntu/mmdetection/demo/image_demo.py", 
+#                inputImagePath,
+#                "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco.py",
+#                "--weights", "/home/ubuntu/mmdetection/rtmdet_tiny_8xb32-300e_coco_20220902_112414-78e30dcc.pth", "--device", "cpu"]
+    
+#     print("command line:")
+#     for i in process_cmd:
+#         print(i, end=" ")
+#     print("\n")
+    
+#     return process_cmd
+
+# get_process_cmd(inputImagePath="<inputImagePath>")
+
+
+
+
+
+
+
 # too old : v2.28: https://vinleonardo.com/detecting-objects-in-pictures-and-extracting-their-data-using-mmdetection/
 
 

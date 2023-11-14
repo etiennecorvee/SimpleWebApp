@@ -1,5 +1,11 @@
 # SimpleWebApp
 
+TODO
+once mmdetection done (or not ie depth and no colour)
+then save resuls to archive folder so 
+
+stat not good enough => use timestamp of the filename insetad
+
 ## Install
 
 https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04
