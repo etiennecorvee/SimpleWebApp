@@ -170,7 +170,7 @@ def nocolour(colour_filename: str):
         try:
             clean_dir_and_copy_file(info="nocolour", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
         except Exception as err:
-            return {"details": "noclour case: ok but copy to last file failed: {}".format(err)}, 400
+            return {"details": "noclour case: input '{}': clean_dir_and_copy_file: failed: {}".format(colour_filename, err)}, 400
 
 @app.route("/process/<colour_filename>", methods=["POST"])
 def process(colour_filename: str):
@@ -220,9 +220,9 @@ def process(colour_filename: str):
                 return {"details": "mmdetection ok but moving file failed: {}".format(err)}, 400
         
             try:
-                clean_dir_and_copy_file(info="failed_mm", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
+                clean_dir_and_copy_file(info="failed_mm", srcdir=app.config['FAILED_MM'], threeFiles=threefiles, dstdir=app.config['LAST'])
             except Exception as err:
-                return {"details": "noclour case: ok but copy to last file failed: {}".format(err)}, 400
+                return {"details": "process: input: '{}', clean_dir_and_copy_file failed: {}".format(colour_filename, err)}, 400
         
         return {"details": "process failed: returned code {} error={}".format(output.returncode, bytes.decode(output.stderr))}, 400
     else:
@@ -259,7 +259,7 @@ def process(colour_filename: str):
             try:
                 clean_dir_and_copy_file(info="processed", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
             except Exception as err:
-                return {"details": "noclour case: ok but copy to last file failed: {}".format(err)}, 400
+                return {"details": "process: input: '{}', clean_dir_and_copy_file failed: {}".format(colour_filename, err)}, 400
         
         return { "details": json.dumps(data) }, 200  
         # return {"details": "process success"}, 200
