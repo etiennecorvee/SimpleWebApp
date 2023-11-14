@@ -2,10 +2,13 @@ import os
 import requests
 import pathlib
 
-def SendItToCloudServer(url_address: str, timeout: int, stamp: str, depth: str, colour: str=None):
+def SendItToCloudServer(url_address: str, timeout: int, 
+                        stamp_filename: str, 
+                        depth_filename: str, 
+                        colour_filename: str=None):
 
-    stamp = stamp.replace(":", "-") # converted to % when receved by webapp
-    entries = [(stamp, "/stamp", "txt"), (depth, "/depth", "image/png"), (colour, "/colour", "image/png")]
+    stamp_filename = stamp_filename.replace(":", "-") # converted to % when receved by webapp
+    entries = [(stamp_filename, "/stamp", "txt"), (depth_filename, "/depth", "image/png"), (colour_filename, "/colour", "image/png")]
     for entry in entries:
         if entry[0] is not None:
             try:
@@ -14,7 +17,7 @@ def SendItToCloudServer(url_address: str, timeout: int, stamp: str, depth: str, 
                     result_upload = requests.post(
                         url=url_address + entry[1],
                         headers={"Content-type": entry[2]},
-                        data={"stamp": os.path.basename(stamp).strip(".txt")},
+                        data={"stamp": os.path.basename(stamp_filename).strip(".txt")},
                         timeout=timeout,
                     )
                     if result_upload.status_code != 200:
@@ -42,11 +45,11 @@ def SendItToCloudServer(url_address: str, timeout: int, stamp: str, depth: str, 
             except Exception as err:
                 raise FileExistsError("SendItToCloudServer failed sending {} error={}".format(entry, err))
 
-    if colour is not None:
+    if colour_filename is not None:
         try:
             result_process = requests.post(
                 # url=url_address + "/process/" + os.path.basename(stamp).strip(".txt"),
-                url=url_address + "/process/" + os.path.basename(colour),
+                url=url_address + "/process/" + os.path.basename(colour_filename),
                 timeout=timeout,
             )
             if result_process.status_code != 200:
@@ -55,6 +58,8 @@ def SendItToCloudServer(url_address: str, timeout: int, stamp: str, depth: str, 
             raise FileExistsError("SendItToCloudServer failed process error={}".format(err))
 
 SendItToCloudServer(url_address="http://127.0.0.1:5001", timeout=10,
-                    stamp="/home/ubuntu/EcoVision/ecolog/chute_d-2023-11-01T13:04:39.014000.txt", # this does not have to exist
-                    colour=None, # "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
-                    depth="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")
+                    stamp_filename="/home/ubuntu/EcoVision/ecolog/chute_d-2023-11-01T13:04:39.014000.txt", # this does not have to exist
+                    # colour=None, # "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
+                    colour_filename="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
+                    depth_filename="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")
+

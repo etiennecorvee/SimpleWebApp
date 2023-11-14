@@ -12,7 +12,7 @@ import subprocess
 import pathlib
 import requests
 import cv2
-from utils import parse_stamped_filename, get_stat_time, get_3_filenames_from_colour_name, move_file
+from utils import parse_stamped_filename, get_stat_time, get_3_filenames_from_colour_name, move_file, clean_dir_and_copy_file
 
 '''
 /stamp POST
@@ -47,7 +47,10 @@ logger = getLogger(__name__)
 
 app = Flask(__name__)
 
-upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
+DEBUG = True
+
+upload_folder = "/home/ubuntu/SimpleWebApp/last"
+last_folder = "/home/ubuntu/SimpleWebApp/uploads/last"
 processed_folder = "/home/ubuntu/SimpleWebApp/processed"
 failed_mm_folder = "/home/ubuntu/SimpleWebApp/failed_mm"
 
@@ -57,6 +60,7 @@ process_output_dir = "/home/ubuntu/SimpleWebApp"
 app.config['UPLOAD'] = upload_folder
 app.config['PROCESSED'] = processed_folder
 app.config['FAILED_MM'] = failed_mm_folder
+app.config['LAST'] = last_folder
 
 def create_dir(dirpath: str):
     if os.path.isdir(dirpath) is False:
@@ -65,7 +69,7 @@ def create_dir(dirpath: str):
         return "dirpath does not exist: {}".format(dirpath)
     return None
 
-for folder in [app.config['UPLOAD'], app.config['PROCESSED'], app.config['FAILED_MM']]:
+for folder in [app.config['UPLOAD'], app.config['PROCESSED'], app.config['FAILED_MM'], app.config['LAST']]:
     if create_dir(dirpath=folder) is not None:
         logger.error("[ERROR] create dir {} failed".format(folder))
         print("[ERROR] create dir {} failed".format(folder))
@@ -149,7 +153,7 @@ def upload_file():
 @app.route("/nocolour/<colour_filename>", methods=["POST"])
 def nocolour(colour_filename: str):
     try:
-        threefiles = get_3_filenames_from_colour_name(colour_filename=colour_filename)
+        threefiles = get_3_filenames_from_colour_name(colour_filename=colour_filename, debug=DEBUG)
     except Exception as err:
         return {"details": "nocolour case: getting the 3 filenames failed with error: {}".format(err)}, 400
     
@@ -161,6 +165,11 @@ def nocolour(colour_filename: str):
             move_file(src=src, dst=dst)
         except Exception as err:
             return {"details": "noclour case: ok but moving file failed: {}".format(err)}, 400
+        
+        try:
+            clean_dir_and_copy_file(info="nocolour", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
+        except Exception as err:
+            return {"details": "noclour case: ok but copy to last file failed: {}".format(err)}, 400
 
 @app.route("/process/<colour_filename>", methods=["POST"])
 def process(colour_filename: str):
@@ -169,10 +178,10 @@ def process(colour_filename: str):
         return {"details": "colour image path does not exist: {}".format(colourPath)}, 400
     
     try:
-        threefiles = get_3_filenames_from_colour_name(colour_filename=colour_filename)
+        threefiles = get_3_filenames_from_colour_name(colour_filename=colour_filename, debug=DEBUG)
     except Exception as err:
         # colour image to be moved to failed folder ?
-        return {"details": "mmdetection ok but getting the 3 filenames failed with error: {}".format(err)}, 400
+        return {"details": "process: getting the 3 filenames failed with error: {}".format(err)}, 400
     
     cmd_line = '''python -c "import sys; print(sys.executable)"
                   source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
@@ -194,6 +203,13 @@ def process(colour_filename: str):
         print(" ... stderr")
         print(bytes.decode(output.stderr))
         
+        # print("[DEBUG] threefiles: {}".format(threefiles))
+        # for filename in threefiles:
+        #     src = os.path.join(app.config['UPLOAD'], filename)
+        #     dst = os.path.join(app.config['FAILED_MM'], filename)
+        #     print(os.path.isfile(src), src, dst)
+        # exit(1)
+        
         for filename in threefiles:
             src = os.path.join(app.config['UPLOAD'], filename)
             dst = os.path.join(app.config['FAILED_MM'], filename)
@@ -201,6 +217,11 @@ def process(colour_filename: str):
                 move_file(src=src, dst=dst)
             except Exception as err:
                 return {"details": "mmdetection ok but moving file failed: {}".format(err)}, 400
+        
+            try:
+                clean_dir_and_copy_file(info="failed_mm", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
+            except Exception as err:
+                return {"details": "noclour case: ok but copy to last file failed: {}".format(err)}, 400
         
         return {"details": "process failed: returned code {} error={}".format(output.returncode, bytes.decode(output.stderr))}, 400
     else:
@@ -231,6 +252,13 @@ def process(colour_filename: str):
                 move_file(src=src, dst=dst)
             except Exception as err:
                 return {"details": "mmdetection ok but moving file failed: {}".format(err)}, 400
+                
+            src = os.path.join(app.config['PROCESSED'], filename)
+            dst = os.path.join(app.config['LAST'], filename)
+            try:
+                clean_dir_and_copy_file(info="processed", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
+            except Exception as err:
+                return {"details": "noclour case: ok but copy to last file failed: {}".format(err)}, 400
         
         return { "details": json.dumps(data) }, 200  
         # return {"details": "process success"}, 200
@@ -330,39 +358,77 @@ def _get_image_content_b64(imagepath: str) -> str:
         # print(" ... content", type(content), type(image_b), type(image_b64)) #  <class 'bytes'> <class 'bytes'> <class 'str'>
         return image_b64
 
+def draw_text(displayImagPath: str, infoProcess: str, outputPath: str="temp.png"):
+    displayImg = cv2.imread(displayImagPath)
+    height = displayImg.shape[0]
+    cv2.putText(img=displayImg, text=infoProcess, org=(10, height-10), 
+                fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=3.0, color=(54, 212, 204), thickness=3)
+    cv2.imwrite(filename=outputPath, img=displayImg)
+
 @app.route('/result/<string:camId>', methods=['GET'])
 def result_api(camId: str):
     
-    # print(" ... result")
-    max_st_mtime = 0.0
-    corr_filename = None
-    for filename in os.listdir(upload_folder):
-        # print(filename)
-        try:
-            parse_stamped_filename(filename=filename, ext_with_dot=".png", res_type="depth", debug=False)
-            st_mtime = get_stat_time(filepath = os.path.join(upload_folder, filename))
-            if st_mtime > max_st_mtime:
-                max_st_mtime = st_mtime
-                corr_filename = filename
-        except Exception as warn:
-            print("[INFO]{}".format(warn))
+    infoPath = os.path.join(app.config['LAST'], "info.txt")
+    if os.path.isfile(infoPath) is False:
+        return _get_image_content_b64("images/empty.png")
     
-    if corr_filename is not None:
+    with open(infoPath, "r") as fin:
+        lines = fin.readlines()
+        if len(lines) < 3 : # info, stamp.png, depth.png + colour.png + colour.mm
+            # TODO draw on image or message on html
+            return _get_image_content_b64("images/error.png")
+
+        infoProcess = None
+        stampFilename = None
+        depthFilename = None
+        colourFilename = None
+        mmFilename = None
         
-        mmfile = corr_filename.strip( pathlib.Path(corr_filename).suffix)
-        print(" ... mmfile", mmfile)
-        mmfile = mmfile.strip("-depth")
-        print(" ... mmfile", mmfile)
-        mmfile += "-colour.mm"
-        mmfile = os.path.join(upload_folder, mmfile)
+        for index in range(len(lines)):
+            if index==0: # info
+                infoProcess = lines[index]
+            elif index==1: # stamp.png
+                stampFilename = lines[index]
+                if ".txt" not in stampFilename:
+                    draw_text(displayImagPath="images/error.png", 
+                        infoProcess=infoProcess, outputPath="temp.png")
+                    return _get_image_content_b64("temp.png")
+            elif index==2: # depth.png
+                depthFilename = lines[index]
+                if "depth" not in depthFilename or ".png" not in depthFilename:
+                    draw_text(displayImagPath="images/error.png", 
+                        infoProcess=infoProcess+" depth png not found in {}".format(depthFilename), outputPath="temp.png")
+                    return _get_image_content_b64("temp.png")
+            elif index==3: # colour.png
+                colourFilename = lines[index]
+                if "colour" not in colourFilename or ".png" not in colourFilename:
+                    draw_text(displayImagPath="images/error.png", 
+                        infoProcess=infoProcess+" colour png not found in {}".format(colourFilename), outputPath="temp.png")
+                    return _get_image_content_b64("temp.png")
+            elif index==4: # colour.mm
+                mmFilename = lines[index]
+                if "colour" not in mmFilename or ".mm" not in mmFilename:
+                    draw_text(displayImagPath="images/error.png", 
+                        infoProcess=infoProcess+" colour mm not found in {}".format(colourFilename), outputPath="temp.png")
+                    return _get_image_content_b64("temp.png")
+
+        if os.path.isfile(os.path.join(app.config['LAST'], stampFilename)) is False:
+            draw_text(displayImagPath="images/error.png", 
+                infoProcess=infoProcess+" stamp file not found {}".format(stampFilename), outputPath="temp.png")
+            return _get_image_content_b64("images/error.png")
+        if os.path.isfile(os.path.join(app.config['LAST'], depthFilename)) is False:
+            draw_text(displayImagPath="images/error.png", 
+                infoProcess=infoProcess+" depth file not found {}".format(depthFilename), outputPath="temp.png")
+            return _get_image_content_b64("images/error.png")
         
-        displayImagPath = os.path.join(upload_folder, corr_filename)
-        
-        print(" .. mmfile", mmfile)
-        if os.path.isfile(mmfile) is True:
-            displayImg = cv2.imread(displayImagPath)
-            print(" .. exist")
-            with open(mmfile, "r") as fjson:
+        displayImagPath = os.path.join(app.config['LAST'], depthFilename)
+        displayImg = cv2.imread(displayImagPath)
+        height = displayImg.shape[0]
+        # width = displayImg.shape[1]
+        cv2.putText(img=displayImg, text=infoProcess, org=(10, height-10), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=3.0, color=(54, 212, 204), thickness=3)
+        # if os.path.isfile(os.path.join(app.config['LAST'], colourFilename)) is True:
+        if os.path.isfile(os.path.join(app.config['LAST'], mmFilename)) is True:
+            with open(os.path.join(app.config['LAST'], mmFilename), "r") as fjson:
                 data = json.loads(fjson.read())
                 print(" ... mmdetection data", data)
                 try:
@@ -373,22 +439,103 @@ def result_api(camId: str):
                             right = int(obj['bbox'][2])
                             bottom = int(obj['bbox'][3])
                             cv2.rectangle(displayImg, (left, top), (right, bottom), (25,50,200), 2)
-                            cv2.putText(img = displayImg, text = obj['class'],
-                                org = (left, top),
-                                fontFace = cv2.FONT_HERSHEY_DUPLEX,
-                                fontScale = 1.0,
-                                color = (125, 246, 55),
-                                thickness = 2)
+                            cv2.putText(img=displayImg, text=obj['class'],
+                                org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=1.0, color=(125, 246, 55), thickness=2)
                         # TODO use a specific name
                     cv2.imwrite(filename="temp.png", img=displayImg)
-                    displayImagPath = "temp.png"
+                    _get_image_content_b64("temp.png")
                 except Exception as err:
                     print("[ERROR] {}".format(err))
-                    return _get_image_content_b64("images/error.png")
+                    draw_text(displayImagPath="images/error.png", 
+                        infoProcess=infoProcess+" draw mm res failed", outputPath="temp.png")
+                    return _get_image_content_b64("temp.png")
+        else:
+            draw_text(displayImagPath=displayImagPath, 
+                infoProcess=infoProcess+" no mm res", outputPath="temp.png")
+            _get_image_content_b64("temp.png")
+
+        return _get_image_content_b64("images/error.png")
+            
+    #             displayImagPath = os.path.join(app.config['LAST'], line)
+    #             if os.path.isfile(displayImagPath) is False:
+    #                 errorMsg.append(line)
+
+                
+                
+                
+    #     displayImagPath = cv2.imread("images/empty.png")
         
-        return _get_image_content_b64(displayImagPath)
-    else:
-        return _get_image_content_b64("images/empty.png")
+        
+    #     cv2.putText(img = displayImg, text = obj['class'],
+    #                             org = (left, top),
+    #                             fontFace = cv2.FONT_HERSHEY_DUPLEX,
+    #                             fontScale = 1.0,
+    #                             color = (125, 246, 55),
+    #                             thickness = 2)
+    
+    
+    # clean_dir_and_copy_file(info="nocolour", srcfile=src, dstdir=os.path.join(app.config['LAST'], dstfile=dst))
+    
+    
+    
+    
+    
+    # # print(" ... result")
+    # max_st_mtime = 0.0
+    # corr_filename = None
+    # for filename in os.listdir(upload_folder):
+    #     # print(filename)
+    #     try:
+    #         parse_stamped_filename(filename=filename, ext_with_dot=".png", res_type="depth", debug=False)
+    #         st_mtime = get_stat_time(filepath = os.path.join(upload_folder, filename))
+    #         if st_mtime > max_st_mtime:
+    #             max_st_mtime = st_mtime
+    #             corr_filename = filename
+    #     except Exception as warn:
+    #         print("[INFO]{}".format(warn))
+    
+    # if corr_filename is not None:
+        
+    #     mmfile = corr_filename.strip( pathlib.Path(corr_filename).suffix)
+    #     print(" ... mmfile", mmfile)
+    #     mmfile = mmfile.strip("-depth")
+    #     print(" ... mmfile", mmfile)
+    #     mmfile += "-colour.mm"
+    #     mmfile = os.path.join(upload_folder, mmfile)
+        
+    #     displayImagPath = os.path.join(upload_folder, corr_filename)
+        
+    #     print(" .. mmfile", mmfile)
+    #     if os.path.isfile(mmfile) is True:
+    #         displayImg = cv2.imread(displayImagPath)
+    #         print(" .. exist")
+    #         with open(mmfile, "r") as fjson:
+    #             data = json.loads(fjson.read())
+    #             print(" ... mmdetection data", data)
+    #             try:
+    #                 for obj in data['predictions']:
+    #                     if obj['class'] == 'person':
+    #                         left = int(obj['bbox'][0])
+    #                         top = int(obj['bbox'][1])  
+    #                         right = int(obj['bbox'][2])
+    #                         bottom = int(obj['bbox'][3])
+    #                         cv2.rectangle(displayImg, (left, top), (right, bottom), (25,50,200), 2)
+    #                         cv2.putText(img = displayImg, text = obj['class'],
+    #                             org = (left, top),
+    #                             fontFace = cv2.FONT_HERSHEY_DUPLEX,
+    #                             fontScale = 1.0,
+    #                             color = (125, 246, 55),
+    #                             thickness = 2)
+    #                     # TODO use a specific name
+    #                 cv2.imwrite(filename="temp.png", img=displayImg)
+    #                 displayImagPath = "temp.png"
+    #             except Exception as err:
+    #                 print("[ERROR] {}".format(err))
+    #                 return _get_image_content_b64("images/error.png")
+        
+    #     return _get_image_content_b64(displayImagPath)
+    # else:
+    #     return _get_image_content_b64("images/empty.png")
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)
