@@ -49,10 +49,11 @@ app = Flask(__name__)
 
 DEBUG = True
 
-upload_folder = "/home/ubuntu/SimpleWebApp/uploads"
-last_folder = "/home/ubuntu/SimpleWebApp/last"
-processed_folder = "/home/ubuntu/SimpleWebApp/processed"
-failed_mm_folder = "/home/ubuntu/SimpleWebApp/failed_mm"
+results_folder = "/home/ubuntu/SimpleWebApp/results"
+upload_folder = "/home/ubuntu/SimpleWebApp/results/uploads"
+last_folder = "/home/ubuntu/SimpleWebApp/results/last"
+processed_folder = "/home/ubuntu/SimpleWebApp/results/processed"
+failed_mm_folder = "/home/ubuntu/SimpleWebApp/results/failed_mm"
 
 # process_cmd = ["python3", "simul_mmdetection.py"]
 process_output_dir = "/home/ubuntu/SimpleWebApp"
@@ -69,7 +70,7 @@ def create_dir(dirpath: str):
         return "dirpath does not exist: {}".format(dirpath)
     return None
 
-for folder in [app.config['UPLOAD'], app.config['PROCESSED'], app.config['FAILED_MM'], app.config['LAST']]:
+for folder in [results_folder, app.config['UPLOAD'], app.config['PROCESSED'], app.config['FAILED_MM'], app.config['LAST']]:
     if create_dir(dirpath=folder) is not None:
         logger.error("[ERROR] create dir {} failed".format(folder))
         print("[ERROR] create dir {} failed".format(folder))
