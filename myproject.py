@@ -276,6 +276,8 @@ def stamp():
         return {"details": " 'stam=' not found in received request dat content of stamp filename: {}".format(textData)}, 400
     textData = textData.strip("stamp=")
     
+    textData = textData.replace("&", ":")
+    
     print("[INFO] received stamp: ", content_type, nb_bytes, request.data, " => '{}'".format(textData))
     
     filename = os.path.join(upload_folder, textData + ".txt")
