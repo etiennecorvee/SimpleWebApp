@@ -276,7 +276,12 @@ def stamp():
         return {"details": " 'stam=' not found in received request dat content of stamp filename: {}".format(textData)}, 400
     textData = textData.strip("stamp=")
     
-    textData = textData.replace("&", ":")
+    # re establish : instead of - in temps
+    textData_parts = textData.split("T")
+    if len(textData_parts) != 2:
+        return {"details": "request dat content of stamp filename: {} not have 2 parts".format(textData)}, 400
+    textData_parts[1] = textData_parts[1].replace("-", ":")
+    textData = textData_parts[0] + "T" + textData_parts[1]
     
     print("[INFO] received stamp: ", content_type, nb_bytes, request.data, " => '{}'".format(textData))
     
