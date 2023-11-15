@@ -72,14 +72,14 @@ def parse_stamped_filename(filename: str, ext_with_dot: str, res_type: str, pref
 
     raise Warning("parse_stamped_filename could not parse stamp for '{}'".format(filename))
 
-def get_3_filenames_from_colour_name(colour_filename: str, debug: bool=False) -> Union[None, Tuple[str, str, str]]:
+def get_4_filenames_from_colour_name(colour_filename: str, debug: bool=False) -> Union[None, Tuple[str, str, str, str]]:
     
     try:
         if debug is True:
-            print("[DEBUG]get_3_filenames_from_colour_name '{}'".format(colour_filename))
-        stamp = parse_stamped_filename(filename=colour_filename, ext_with_dot=".png", res_type="colour", debug=debug)
+            print("[DEBUG]get_4_filenames_from_colour_name '{}'".format(colour_filename))
+        stamp = parse_stamped_filename(filename=colour_filename, ext_with_dot=".png", res_type="colour", debug=False)
     except Exception as warn:
-        msg = "[ERROR]get_3_filenames_from_colour_name: {}".format(warn)
+        msg = "[ERROR]get_4_filenames_from_colour_name: {}".format(warn)
         if debug is True:
             print(msg)
         raise Exception(msg)
@@ -87,28 +87,39 @@ def get_3_filenames_from_colour_name(colour_filename: str, debug: bool=False) ->
     depth_filename = colour_filename.replace("colour", "depth")
     try:
         if debug is True:
-            print("[DEBUG]get_3_filenames_from_colour_name '{}', depth: {}".format(colour_filename, depth_filename))
-        parse_stamped_filename(filename=depth_filename, ext_with_dot=".png", res_type="depth", debug=debug)
+            print("[DEBUG]get_4_filenames_from_colour_name '{}', depth: {}".format(colour_filename, depth_filename))
+        parse_stamped_filename(filename=depth_filename, ext_with_dot=".png", res_type="depth", debug=False)
     except Exception as warn:
         if debug is True:
             print(msg)
-        msg = "[ERROR]get_3_filenames_from_colour_name: {}".format(warn)
+        msg = "[ERROR]get_4_filenames_from_colour_name: {}".format(warn)
         raise Exception()
     
+    mm_filename = colour_filename.replace(".png", ".mm")
+    try:
+        if debug is True:
+            print("[DEBUG]get_4_filenames_from_colour_name '{}', mm: {}".format(colour_filename, mm_filename))
+        parse_stamped_filename(filename=mm_filename, ext_with_dot=".mm", res_type="colour", debug=False)
+    except Exception as warn:
+        if debug is True:
+            print(msg)
+        msg = "[ERROR]get_4_filenames_from_colour_name: {}".format(warn)
+        raise Exception()
+
     # for stamp file get rid of -nbpX (nb persons) in filename
     stamp_filename = GetTimestamp(stamp, debug=debug)
     # just for checking
     try:
         if debug is True:
-            print("[DEBUG]get_3_filenames_from_colour_name '{}', stamp: {}".format(colour_filename, stamp_filename))
-        parse_stamped_filename(filename=stamp_filename, ext_with_dot=".txt", res_type="", debug=debug)
+            print("[DEBUG]get_4_filenames_from_colour_name '{}', stamp: {}".format(colour_filename, stamp_filename))
+        parse_stamped_filename(filename=stamp_filename, ext_with_dot=".txt", res_type="", debug=False)
     except Exception as warn:
-        msg = "[ERROR]get_3_filenames_from_colour_name: {}".format(warn)
+        msg = "[ERROR]get_4_filenames_from_colour_name: {}".format(warn)
         if debug is True:
             print(msg)
         raise Exception(msg)
     
-    return (stamp_filename, depth_filename, colour_filename)
+    return (stamp_filename, depth_filename, colour_filename, mm_filename)
 
 def copy_file(src: str, dst: str):
     if os.path.isfile(dst) is True:
@@ -119,14 +130,14 @@ def copy_file(src: str, dst: str):
     if os.path.isfile(dst) is False:
         raise Exception("[ERROR] copy file failed: {} -> {}".format(src, dst))
 
-def clean_dir_and_copy_file(info: str, srcdir: str, threeFiles: List[str], dstdir: str):
+def clean_dir_and_copy_file(info: str, srcdir: str, fourFiles: List[str], dstdir: str):
     shutil.rmtree(path=dstdir)
     if os.path.isdir(dstdir) is True:
         raise Exception("[ERROR]failed to erase dest folder {}".format(dstdir))
     os.mkdir(dstdir)
     if os.path.isdir(dstdir) is False:
         raise Exception("[ERROR]failed to create dest folder {}".format(dstdir))
-    for filename in threeFiles:
+    for filename in fourFiles:
         if filename is not None:
             try:
                 copy_file(src=os.path.join(srcdir, filename), dst=os.path.join(dstdir, filename))
@@ -134,7 +145,11 @@ def clean_dir_and_copy_file(info: str, srcdir: str, threeFiles: List[str], dstdi
                 raise Exception("[ERROR] clean_dir_and_copy_file failed: {}".format(err))
     
     with open(os.path.join(dstdir, "info.txt"), "w") as fout:
-        fout.write(info)
+        print(" ... writing info file: ", os.path.join(dstdir, "info.txt"), info, fourFiles)
+        fout.write(info+"\n")
+        for filename in fourFiles:
+            if filename is not None:
+                fout.write(filename+"\n")
 
 def move_file(src: str, dst: str):
     if os.path.isfile(dst) is True:

@@ -12,7 +12,7 @@ import subprocess
 import pathlib
 import requests
 import cv2
-from utils import parse_stamped_filename, get_stat_time, get_3_filenames_from_colour_name, move_file, clean_dir_and_copy_file
+from utils import parse_stamped_filename, get_stat_time, get_4_filenames_from_colour_name, move_file, clean_dir_and_copy_file
 
 '''
 /stamp POST
@@ -154,21 +154,21 @@ def upload_file():
 @app.route("/nocolour/<colour_filename>", methods=["POST"])
 def nocolour(colour_filename: str):
     try:
-        threefiles = get_3_filenames_from_colour_name(colour_filename=colour_filename, debug=DEBUG)
+        fourfiles = get_4_filenames_from_colour_name(colour_filename=colour_filename, debug=DEBUG)
     except Exception as err:
         return {"details": "nocolour case: getting the 3 filenames failed with error: {}".format(err)}, 400
     
     # move only the stamp and depth
     for index in range(2):
-        src = os.path.join(app.config['UPLOAD'], threefiles[index])
-        dst = os.path.join(app.config['PROCESSED'], threefiles[index])
+        src = os.path.join(app.config['UPLOAD'], fourfiles[index])
+        dst = os.path.join(app.config['PROCESSED'], fourfiles[index])
         try:
             move_file(src=src, dst=dst)
         except Exception as err:
             return {"details": "noclour case: ok but moving file failed: {}".format(err)}, 400
         
     try:
-        clean_dir_and_copy_file(info="nocolour", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
+        clean_dir_and_copy_file(info="nocolour", srcdir=app.config['PROCESSED'], fourfiles=fourfiles, dstdir=app.config['LAST'])
     except Exception as err:
         return {"details": "noclour case: input '{}': clean_dir_and_copy_file: failed: {}".format(colour_filename, err)}, 400
 
@@ -179,7 +179,7 @@ def process(colour_filename: str):
         return {"details": "colour image path does not exist: {}".format(colourPath)}, 400
     
     try:
-        threefiles = get_3_filenames_from_colour_name(colour_filename=colour_filename, debug=DEBUG)
+        fourfiles = get_4_filenames_from_colour_name(colour_filename=colour_filename, debug=DEBUG)
     except Exception as err:
         # colour image to be moved to failed folder ?
         return {"details": "process: getting the 3 filenames failed with error: {}".format(err)}, 400
@@ -204,51 +204,24 @@ def process(colour_filename: str):
         print(" ... stderr")
         print(bytes.decode(output.stderr))
         
-        # print("[DEBUG] threefiles: {}".format(threefiles))
-        # for filename in threefiles:
+        # print("[DEBUG] fourfiles: {}".format(fourfiles))
+        # for filename in fourfileshreefiles:
         #     src = os.path.join(app.config['UPLOAD'], filename)
         #     dst = os.path.join(app.config['FAILED_MM'], filename)
         #     print(os.path.isfile(src), src, dst)
         # exit(1)
         
-        for filename in threefiles:
+        for index in range(3):
+            filename = fourfiles[index]
             src = os.path.join(app.config['UPLOAD'], filename)
             dst = os.path.join(app.config['FAILED_MM'], filename)
             try:
                 move_file(src=src, dst=dst)
             except Exception as err:
-                return {"details": "mmdetection ok but moving file failed: {}".format(err)}, 400
-        
-        
-#         (base) ubuntu@vps-560d3859:~/SimpleWebApp$ ls ./results/*/* -l
-# -rw-rw-r-- 1 ubuntu ubuntu      0 Nov 14 23:50 ./results/last/chute_d-2023-11-14T23:07:22.844000.txt
-# -rw-rw-r-- 1 ubuntu ubuntu      0 Nov 14 23:50 ./results/processed/chute_d-2023-11-14T23:07:22.844000.txt
-# -rw-rw-r-- 1 ubuntu ubuntu   1620 Nov 14 23:50 ./results/uploads/chute_d-2023-11-14T23:07:22.844000-nbp1-colour.mm
-# -rw-rw-r-- 1 ubuntu ubuntu 125833 Nov 14 23:50 ./results/uploads/chute_d-2023-11-14T23:07:22.844000-nbp1-colour.png
-# -rw-rw-r-- 1 ubuntu ubuntu  19317 Nov 14 23:50 ./results/uploads/chute_d-2023-11-14T23:07:22.844000-nbp1-depth.png
-        
-        
-#         2023-11-14 23:50:51,531 DEBUG urllib3.connectionpool MainThread : Starting new HTTP connection (1): 37.187.37.203:5001
-# 2023-11-14 23:50:51,565 DEBUG urllib3.connectionpool MainThread : http://37.187.37.203:5001 "POST /stamp HTTP/1.1" 200 35
-#  ... send image to:  http://37.187.37.203:5001/depth/chute_d-2023-11-14T23:07:22.844000-nbp1-depth
-# 2023-11-14 23:50:51,581 DEBUG urllib3.connectionpool MainThread : Starting new HTTP connection (1): 37.187.37.203:5001
-# 2023-11-14 23:50:51,631 DEBUG urllib3.connectionpool MainThread : http://37.187.37.203:5001 "POST /depth/chute_d-2023-11-14T23:07:22.844000-nbp1-depth HTTP/1.1" 200 35
-# result upload status: 200
-#  ... send image to:  http://37.187.37.203:5001/colour/chute_d-2023-11-14T23:07:22.844000-nbp1-colour
-# 2023-11-14 23:50:51,648 DEBUG urllib3.connectionpool MainThread : Starting new HTTP connection (1): 37.187.37.203:5001
-# 2023-11-14 23:50:51,737 DEBUG urllib3.connectionpool MainThread : http://37.187.37.203:5001 "POST /colour/chute_d-2023-11-14T23:07:22.844000-nbp1-colour HTTP/1.1" 200 36
-# result upload status: 200
-# 2023-11-14 23:50:51,754 DEBUG urllib3.connectionpool MainThread : Starting new HTTP connection (1): 37.187.37.203:5001
-# 2023-11-14 23:50:56,964 DEBUG urllib3.connectionpool MainThread : http://37.187.37.203:5001 "POST /process/chute_d-2023-11-14T23:07:22.844000-nbp1-colour.png HTTP/1.1" 400 380
-# result upload colour: 400
-# result process status: 400 b'{"details":"process: input: \'chute_d-2023-11-14T23:07:22.844000-nbp1-colour.png\', clean_dir_and_copy_file failed: [ERROR] clean_dir_and_copy_file failed: [ERROR] copy file src does not exist: /home/ubuntu/SimpleWebApp/results/processed/chute_d-2023-11-14T23:07:22.844000-nbp1-depth.png -> /home/ubuntu/SimpleWebApp/results/last/chute_d-2023-11-14T23:07:22.844000-nbp1-depth.png"}\n'
-#  ... filename 2023-11-14T23:35:03.755000.txt
-#  ... day_temps ['2023-11-14', '23:35:03.755000.txt']
-#  ... filename chute_d-2023-11-14T23:07:22.844000-nbp1-depth.png
-        
-        
+                return {"details": "mmdetection failed and moving file failed: {}".format(err)}, 400
+    
         try:
-            clean_dir_and_copy_file(info="failed_mm", srcdir=app.config['FAILED_MM'], threeFiles=threefiles, dstdir=app.config['LAST'])
+            clean_dir_and_copy_file(info="failed_mm", srcdir=app.config['FAILED_MM'], fourFiles=fourfiles, dstdir=app.config['LAST'])
         except Exception as err:
             return {"details": "process: input: '{}', clean_dir_and_copy_file failed: {}".format(colour_filename, err)}, 400
         
@@ -274,10 +247,12 @@ def process(colour_filename: str):
         
         print(" ... data", data)
         
-        for filename in threefiles:
+        for filename in fourfiles:
             src = os.path.join(app.config['UPLOAD'], filename)
             dst = os.path.join(app.config['PROCESSED'], filename)
             try:
+                print(" ... moving file: src", src)
+                print(" ... moving file: dst", dst)
                 move_file(src=src, dst=dst)
             except Exception as err:
                 return {"details": "mmdetection ok but moving file failed: {}".format(err)}, 400
@@ -285,7 +260,7 @@ def process(colour_filename: str):
             src = os.path.join(app.config['PROCESSED'], filename)
             dst = os.path.join(app.config['LAST'], filename)
         try:
-            clean_dir_and_copy_file(info="processed", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
+            clean_dir_and_copy_file(info="processed", srcdir=app.config['PROCESSED'], fourFiles=fourfiles, dstdir=app.config['LAST'])
         except Exception as err:
             return {"details": "process: input: '{}', clean_dir_and_copy_file failed: {}".format(colour_filename, err)}, 400
         
@@ -418,6 +393,7 @@ def result_api(camId: str):
         lines = fin.readlines()
         if len(lines) < 3 : # info, stamp.png, depth.png + colour.png + colour.mm
             # TODO draw on image or message on html
+            print("[ERROR]/result, nb lines in infoPath {}: nblines {}, lines={}".format(infoPath, len(lines), lines))
             return _get_image_content_b64("images/error.png")
 
         infoProcess = None
@@ -430,35 +406,41 @@ def result_api(camId: str):
             if index==0: # info
                 infoProcess = lines[index]
             elif index==1: # stamp.png
-                stampFilename = lines[index]
+                stampFilename = lines[index].strip()
                 if ".txt" not in stampFilename:
+                    print("[ERROR]/result: .txt not found in stampFilename: {}".format(stampFilename))
                     draw_text(displayImagPath="images/error.png", 
                         infoProcess=infoProcess, outputPath="temp.png")
                     return _get_image_content_b64("temp.png")
             elif index==2: # depth.png
-                depthFilename = lines[index]
+                depthFilename = lines[index].strip()
                 if "depth" not in depthFilename or ".png" not in depthFilename:
+                    print("[ERROR]/result: depth and .png not found in depthFilename: {}".format(depthFilename))
                     draw_text(displayImagPath="images/error.png", 
                         infoProcess=infoProcess+" depth png not found in {}".format(depthFilename), outputPath="temp.png")
                     return _get_image_content_b64("temp.png")
             elif index==3: # colour.png
-                colourFilename = lines[index]
+                colourFilename = lines[index].strip()
                 if "colour" not in colourFilename or ".png" not in colourFilename:
+                    print("[ERROR]/result: colour and .png not found in colourFilename: {}".format(colourFilename))
                     draw_text(displayImagPath="images/error.png", 
                         infoProcess=infoProcess+" colour png not found in {}".format(colourFilename), outputPath="temp.png")
                     return _get_image_content_b64("temp.png")
             elif index==4: # colour.mm
-                mmFilename = lines[index]
+                mmFilename = lines[index].strip()
                 if "colour" not in mmFilename or ".mm" not in mmFilename:
+                    print("[ERROR]/result: colour and mm not found in stampFilename: {}".format(mmFilename))
                     draw_text(displayImagPath="images/error.png", 
                         infoProcess=infoProcess+" colour mm not found in {}".format(colourFilename), outputPath="temp.png")
                     return _get_image_content_b64("temp.png")
 
         if os.path.isfile(os.path.join(app.config['LAST'], stampFilename)) is False:
+            print("[ERROR]/result: stampFilename: {} not found in last folder".format(stampFilename))
             draw_text(displayImagPath="images/error.png", 
                 infoProcess=infoProcess+" stamp file not found {}".format(stampFilename), outputPath="temp.png")
             return _get_image_content_b64("images/error.png")
         if os.path.isfile(os.path.join(app.config['LAST'], depthFilename)) is False:
+            print("[ERROR]/result: depthFilename: {} not found in last folder".format(depthFilename))
             draw_text(displayImagPath="images/error.png", 
                 infoProcess=infoProcess+" depth file not found {}".format(depthFilename), outputPath="temp.png")
             return _get_image_content_b64("images/error.png")
@@ -485,7 +467,7 @@ def result_api(camId: str):
                                 org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=1.0, color=(125, 246, 55), thickness=2)
                         # TODO use a specific name
                     cv2.imwrite(filename="temp.png", img=displayImg)
-                    _get_image_content_b64("temp.png")
+                    return _get_image_content_b64("temp.png")
                 except Exception as err:
                     print("[ERROR] {}".format(err))
                     draw_text(displayImagPath="images/error.png", 
@@ -496,6 +478,11 @@ def result_api(camId: str):
                 infoProcess=infoProcess+" no mm res", outputPath="temp.png")
             _get_image_content_b64("temp.png")
 
+too big proces in image put etxt plus timestamp shall be displayed
+mm empty !!!
+duplicated between procssed and last ... why ?
+
+        print("[ERROR]/result: reached end of endpoint")
         return _get_image_content_b64("images/error.png")
             
     #             displayImagPath = os.path.join(app.config['LAST'], line)
