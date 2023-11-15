@@ -219,6 +219,34 @@ def process(colour_filename: str):
             except Exception as err:
                 return {"details": "mmdetection ok but moving file failed: {}".format(err)}, 400
         
+        
+#         (base) ubuntu@vps-560d3859:~/SimpleWebApp$ ls ./results/*/* -l
+# -rw-rw-r-- 1 ubuntu ubuntu      0 Nov 14 23:50 ./results/last/chute_d-2023-11-14T23:07:22.844000.txt
+# -rw-rw-r-- 1 ubuntu ubuntu      0 Nov 14 23:50 ./results/processed/chute_d-2023-11-14T23:07:22.844000.txt
+# -rw-rw-r-- 1 ubuntu ubuntu   1620 Nov 14 23:50 ./results/uploads/chute_d-2023-11-14T23:07:22.844000-nbp1-colour.mm
+# -rw-rw-r-- 1 ubuntu ubuntu 125833 Nov 14 23:50 ./results/uploads/chute_d-2023-11-14T23:07:22.844000-nbp1-colour.png
+# -rw-rw-r-- 1 ubuntu ubuntu  19317 Nov 14 23:50 ./results/uploads/chute_d-2023-11-14T23:07:22.844000-nbp1-depth.png
+        
+        
+#         2023-11-14 23:50:51,531 DEBUG urllib3.connectionpool MainThread : Starting new HTTP connection (1): 37.187.37.203:5001
+# 2023-11-14 23:50:51,565 DEBUG urllib3.connectionpool MainThread : http://37.187.37.203:5001 "POST /stamp HTTP/1.1" 200 35
+#  ... send image to:  http://37.187.37.203:5001/depth/chute_d-2023-11-14T23:07:22.844000-nbp1-depth
+# 2023-11-14 23:50:51,581 DEBUG urllib3.connectionpool MainThread : Starting new HTTP connection (1): 37.187.37.203:5001
+# 2023-11-14 23:50:51,631 DEBUG urllib3.connectionpool MainThread : http://37.187.37.203:5001 "POST /depth/chute_d-2023-11-14T23:07:22.844000-nbp1-depth HTTP/1.1" 200 35
+# result upload status: 200
+#  ... send image to:  http://37.187.37.203:5001/colour/chute_d-2023-11-14T23:07:22.844000-nbp1-colour
+# 2023-11-14 23:50:51,648 DEBUG urllib3.connectionpool MainThread : Starting new HTTP connection (1): 37.187.37.203:5001
+# 2023-11-14 23:50:51,737 DEBUG urllib3.connectionpool MainThread : http://37.187.37.203:5001 "POST /colour/chute_d-2023-11-14T23:07:22.844000-nbp1-colour HTTP/1.1" 200 36
+# result upload status: 200
+# 2023-11-14 23:50:51,754 DEBUG urllib3.connectionpool MainThread : Starting new HTTP connection (1): 37.187.37.203:5001
+# 2023-11-14 23:50:56,964 DEBUG urllib3.connectionpool MainThread : http://37.187.37.203:5001 "POST /process/chute_d-2023-11-14T23:07:22.844000-nbp1-colour.png HTTP/1.1" 400 380
+# result upload colour: 400
+# result process status: 400 b'{"details":"process: input: \'chute_d-2023-11-14T23:07:22.844000-nbp1-colour.png\', clean_dir_and_copy_file failed: [ERROR] clean_dir_and_copy_file failed: [ERROR] copy file src does not exist: /home/ubuntu/SimpleWebApp/results/processed/chute_d-2023-11-14T23:07:22.844000-nbp1-depth.png -> /home/ubuntu/SimpleWebApp/results/last/chute_d-2023-11-14T23:07:22.844000-nbp1-depth.png"}\n'
+#  ... filename 2023-11-14T23:35:03.755000.txt
+#  ... day_temps ['2023-11-14', '23:35:03.755000.txt']
+#  ... filename chute_d-2023-11-14T23:07:22.844000-nbp1-depth.png
+        
+        
         try:
             clean_dir_and_copy_file(info="failed_mm", srcdir=app.config['FAILED_MM'], threeFiles=threefiles, dstdir=app.config['LAST'])
         except Exception as err:
@@ -256,10 +284,10 @@ def process(colour_filename: str):
                 
             src = os.path.join(app.config['PROCESSED'], filename)
             dst = os.path.join(app.config['LAST'], filename)
-            try:
-                clean_dir_and_copy_file(info="processed", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
-            except Exception as err:
-                return {"details": "process: input: '{}', clean_dir_and_copy_file failed: {}".format(colour_filename, err)}, 400
+        try:
+            clean_dir_and_copy_file(info="processed", srcdir=app.config['PROCESSED'], threeFiles=threefiles, dstdir=app.config['LAST'])
+        except Exception as err:
+            return {"details": "process: input: '{}', clean_dir_and_copy_file failed: {}".format(colour_filename, err)}, 400
         
         return { "details": json.dumps(data) }, 200  
         # return {"details": "process success"}, 200
