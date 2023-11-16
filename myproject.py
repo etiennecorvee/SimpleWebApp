@@ -143,8 +143,8 @@ def process(colour_filename: str):
         print("[INFO] mmdetection results data: ", data)
         
         try:
-            move_files_and_update_last(info="failed_mm", nbFiles=4, fourfiles=fourfiles,
-                srcDir=app.config['UPLOAD'], dstDir=app.config['PROCESSED'], lastDir=app.config['LAST'])
+            move_files_and_update_last(info="processed", nbFiles=4, fourfiles=fourfiles,
+                srcDir=app.config['UPLOAD'], dstDir=app.config['PROCESSED'], lastDir=app.config['LAST'], debug=True)
         except Exception as err:
             msgErr = "[ERROR] /process/{} mmdetection ok but moving file update failed with error={}".format(colour_filename, err)
             print(msgErr)
@@ -269,25 +269,32 @@ def result_api(camId: str):
         displayImg = cv2.imread(displayImagPath)
         height = displayImg.shape[0]
         # width = displayImg.shape[1]
-        cv2.putText(img=displayImg, text=infoProcess, org=(10, height-10), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=3.0, color=(54, 212, 204), thickness=3)
+        cv2.putText(img=displayImg, text=infoProcess, org=(10, height-10), fontFace=cv2.FONT_HERSHEY_DUPLEX, 
+                    fontScale=0.5, color=(54, 212, 204), thickness=1)
         # if os.path.isfile(os.path.join(app.config['LAST'], colourFilename)) is True:
+        
+        TODO get the depth bboxes
+        if unidentified by mm
+        => special case
+        ecovision
+        [WARNING] this is not a valid file: /home/ubuntu/EcoVision/ecolog/2023-11-16T20:32:24.617000.txt
         
         if mmFilename is not None:
             if os.path.isfile(os.path.join(app.config['LAST'], mmFilename)) is True:
                 try:
                     with open(os.path.join(app.config['LAST'], mmFilename), "r") as fjson:
                         data = json.loads(fjson.read())
-                        print(" ... mmdetection data", data)
+                        # print(" ... mmdetection data", data)
                         try:
                             for obj in data['predictions']:
-                                if obj['class'] == 'person':
-                                    left = int(obj['bbox'][0])
-                                    top = int(obj['bbox'][1])  
-                                    right = int(obj['bbox'][2])
-                                    bottom = int(obj['bbox'][3])
-                                    cv2.rectangle(displayImg, (left, top), (right, bottom), (25,50,200), 2)
-                                    cv2.putText(img=displayImg, text=obj['class'],
-                                        org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=1.0, color=(125, 246, 55), thickness=2)
+                                # if obj['class'] == 'person':
+                                left = int(obj['bbox'][0])
+                                top = int(obj['bbox'][1])  
+                                right = int(obj['bbox'][2])
+                                bottom = int(obj['bbox'][3])
+                                displayImg = cv2.rectangle(displayImg, (left, top), (right, bottom), (200,50,200), 2)
+                                displayImg = cv2.putText(img=displayImg, text=obj['class'],
+                                    org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(125, 246, 55), thickness=1)
                                 # TODO use a specific name
                             cv2.imwrite(filename="temp.png", img=displayImg)
                             return _get_image_content_b64("temp.png")
