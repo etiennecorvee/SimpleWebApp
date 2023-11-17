@@ -14,6 +14,12 @@ from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _ge
 # mm empty !!!
 # duplicated between procssed and last ... why ?
 
+# TODO get the depth bboxes
+#         if unidentified by mm
+#         => special case
+#         ecovision
+#         [WARNING] this is not a valid file: /home/ubuntu/EcoVision/ecolog/2023-11-16T20:32:24.617000.txt
+
 '''
 /stamp POST
   => /uploads/stamp.txt
@@ -272,12 +278,6 @@ def result_api(camId: str):
         cv2.putText(img=displayImg, text=infoProcess, org=(10, height-10), fontFace=cv2.FONT_HERSHEY_DUPLEX, 
                     fontScale=0.5, color=(54, 212, 204), thickness=1)
         # if os.path.isfile(os.path.join(app.config['LAST'], colourFilename)) is True:
-        
-        TODO get the depth bboxes
-        if unidentified by mm
-        => special case
-        ecovision
-        [WARNING] this is not a valid file: /home/ubuntu/EcoVision/ecolog/2023-11-16T20:32:24.617000.txt
         
         if mmFilename is not None:
             if os.path.isfile(os.path.join(app.config['LAST'], mmFilename)) is True:

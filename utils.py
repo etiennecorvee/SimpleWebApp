@@ -348,3 +348,7 @@ def draw_text(displayImagPath: str, infoProcess: str, outputPath: str="temp.png"
     displayImg = cv2.putText(img=displayImg, text=infoProcess, org=(10, height-10), 
                 fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(54, 212, 204), thickness=1)
     cv2.imwrite(filename=outputPath, img=displayImg)
+    
+    ecovision
+    error: object file .git/objects/12/221cd95100ee283dbb36e431a15441eac9e85a is empty
+fatal: loose object 12221cd95100ee283dbb36e431a15441eac9e85a (stored in .git/objects/12/221cd95100ee283dbb36e431a15441eac9e85a) is corrupt
