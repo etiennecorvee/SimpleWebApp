@@ -61,7 +61,7 @@ WorkingDirectory=/home/ubuntu/myproject
 Environment="PATH=/home/ubuntu/myproject/venv/bin"
 ExecStart=/home/ubuntu/myproject/venv/bin/gunicorn --workers 1 --bind 0.0.0.0:5001 wsgi:app
 [Install]
-WantedBy=multi-user.target  150  sudo systemctl start myproject
+WantedBy=multi-user.target
 
 > sudo systemctl enable myproject
 > sudo systemctl start myproject
