@@ -20,6 +20,10 @@ from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _ge
 #         ecovision
 #         [WARNING] this is not a valid file: /home/ubuntu/EcoVision/ecolog/2023-11-16T20:32:24.617000.txt
 
+#     ecovision
+#     error: object file .git/objects/12/221cd95100ee283dbb36e431a15441eac9e85a is empty
+# fatal: loose object 12221cd95100ee283dbb36e431a15441eac9e85a (stored in .git/objects/12/221cd95100ee283dbb36e431a15441eac9e85a) is corrupt
+
 '''
 /stamp POST
   => /uploads/stamp.txt
