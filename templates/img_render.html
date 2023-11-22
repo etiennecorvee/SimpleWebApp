@@ -1,58 +1,140 @@
-<img id="image">
 
-<input type="text" placeholder="identifier" id="identifier">
-<input type="text" placeholder="interval in second(s)" id="intervalSec">
-<button class="button" id="start">Start</button>
+<!doctype html>
+<body>
+<title>Chutes Analyse</title>
+<h1>Chutes</h1>
+<hr>
+<h2>View</h2>
+<div style="text-align:center">
 
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"     integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
-<script>
+    <img id="image">
 
-    let button = document.getElementById("start")
-    button.addEventListener('click', function(ev) {
-                getresult();
-                ev.preventDefault();
-            }, false);
+    <input type="text" placeholder="identifier" id="identifier">
+    <input type="text" placeholder="interval in second(s)" id="intervalSec">
+    <button class="button" id="start">Start</button>
 
-    function getresult()
-    {
-        document.getElementById("start").disabled = true; 
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"     integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <script>
 
-        let inputVal = document.getElementById("intervalSec").value;
-        let camId = document.getElementById("identifier").value;
+        let button = document.getElementById("start")
+        button.addEventListener('click', function(ev) {
+                    getresult();
+                    ev.preventDefault();
+                }, false);
 
-        var urlHost = window.location.host
-        var urlProtocol = window.location.protocol
-        var urlRoot = urlProtocol + "//" + urlHost
-        // console.log(" ... urlRoot:" + urlRoot)
-        const url = urlRoot + "/result/" + camId;
-
-        $.ajax({
-            // url: 'http://127.0.0.1:5000/result/'+camId,
-            url: url,
-            type: 'GET',
-            contentType: "image/png",
-            success: function(result) {
-            document.getElementById('image').src = 'data:image/gif;base64,' + result;
-            }
-        });
-
-        if(inputVal=="")
+        function getresult()
         {
-            console.log("empty string, set interval to 1")
-            setTimeout(getresult, 1000);
-        }
-        else
-        {
-            let valueInterval = parseInt(inputVal)
-            console.log("interval=" + valueInterval)
+            document.getElementById("start").disabled = true; 
 
-            if(valueInterval < 1){
+            let inputVal = document.getElementById("intervalSec").value;
+            let camId = document.getElementById("identifier").value;
+
+            var urlHost = window.location.host
+            var urlProtocol = window.location.protocol
+            var urlRoot = urlProtocol + "//" + urlHost
+            // console.log(" ... urlRoot:" + urlRoot)
+            const url = urlRoot + "/result/" + camId;
+
+            $.ajax({
+                // url: 'http://127.0.0.1:5000/result/'+camId,
+                url: url,
+                type: 'GET',
+                contentType: "image/png",
+                success: function(result) {
+                document.getElementById('image').src = 'data:image/gif;base64,' + result;
+                }
+            });
+
+            if(inputVal=="")
+            {
+                console.log("empty string, set interval to 1")
                 setTimeout(getresult, 1000);
             }
-            else{
-                setTimeout(getresult, valueInterval*1000);
+            else
+            {
+                let valueInterval = parseInt(inputVal)
+                console.log("interval=" + valueInterval)
+
+                if(valueInterval < 1){
+                    setTimeout(getresult, 1000);
+                }
+                else{
+                    setTimeout(getresult, valueInterval*1000);
+                }
             }
         }
-    }
 
-</script> 
+    </script> 
+</div>
+
+<hr>
+<h2>Récupérer un résultat</h2>
+
+<div style="text-align:center">
+
+    <img id="imageSelect">
+
+    <text id="resultListProcessed">
+
+    <button class="button" id="startSelect">StartSelect</button>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"     integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <script>
+
+        let buttonSelect = document.getElementById("startSelect")
+        buttonSelect.addEventListener('click', function(ev) {
+                    getresultSelect();
+                    ev.preventDefault();
+                }, false);
+
+        function getresultSelect()
+        {
+            document.getElementById("startSelect").disabled = false; 
+
+            let camId = document.getElementById("identifier").value;
+
+            var urlHost = window.location.host
+            var urlProtocol = window.location.protocol
+            var urlRoot = urlProtocol + "//" + urlHost
+            const url2 = urlRoot + "/resultListProcessed"
+
+            var responseList = [];
+            $.ajax({
+                url: url2,
+                async: false,
+                type: 'GET',
+                success: function(res) {
+                    var text = res.responseText;
+                    responseList = res
+                    console.log(" ... GET2 = " + responseList)
+                    document.getElementById("responseList").value = responseList;
+                    // then you can manipulate your text as you wish
+
+
+                }
+            });
+
+            console.log(" ... responseList = " + responseList)
+
+            
+        }
+
+    </script> 
+
+    <input type="text" placeholder="responseList" id="responseList">
+    <ol>
+        {% for item in responseList %}
+        <li>item</li>
+        {% endfor %}
+      </ol>
+
+</div>
+
+<!--div style="text-align:left">
+    Existing results :
+    <ul>
+    {% for folder in folders %}
+        <li>{{ folder }}</li>
+    {% endfor %}
+    </ul>
+</div-->

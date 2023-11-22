@@ -173,14 +173,18 @@ def move_file(src: str, dst: str):
     if os.path.isfile(src) is True:
         raise Exception("[ERROR] moving file failed: {} -> {}".format(src, dst))
 
-def move_files_and_update_last(info: str, nbFiles: int, fourfiles: List[str], srcDir: str, dstDir: str, lastDir: str, debug: bool=False):
+def move_files_and_update_last(MOVE: bool, info: str, nbFiles: int, fourfiles: List[str], srcDir: str, dstDir: str, lastDir: str, debug: bool=False):
     
     for index in range(nbFiles):
         src = os.path.join(srcDir, fourfiles[index])
         dst = os.path.join(dstDir, fourfiles[index])
         try:
-            printd(debug, "[DEBUG]'{}' moving file '{}' -> '{}'".format(info, src, dst))
-            move_file(src=src, dst=dst)
+            if MOVE is True:
+                printd(debug, "[DEBUG]'{}' moving file '{}' -> '{}'".format(info, src, dst))
+                move_file(src=src, dst=dst)
+            else:
+                printd(debug, "[DEBUG]'{}' copying file '{}' -> '{}'".format(info, src, dst))
+                copy_file(src=src, dst=dst)
         except Exception as err:
             raise Exception("[ERROR]move_files_and_update_last: error={}".format(err))
         
@@ -345,7 +349,7 @@ def _get_image_content_b64(imagepath: str) -> str:
 def draw_text(displayImagPath: str, infoProcess: str, outputPath: str="temp.png"):
     displayImg = cv2.imread(displayImagPath)
     height = displayImg.shape[0]
-    displayImg = cv2.putText(img=displayImg, text=infoProcess, org=(10, height-10), 
+    displayImg = cv2.putText(img=displayImg, text=infoProcess, org=(10, int(height/2)), 
                 fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(54, 212, 204), thickness=1)
     cv2.imwrite(filename=outputPath, img=displayImg)
     

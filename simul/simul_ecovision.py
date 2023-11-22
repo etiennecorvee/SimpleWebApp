@@ -57,9 +57,13 @@ def SendItToCloudServer(url_address: str, timeout: int,
         except Exception as err:
             raise FileExistsError("SendItToCloudServer failed process error={}".format(err))
 
-SendItToCloudServer(url_address="http://127.0.0.1:5001", timeout=10,
-                    stamp_filename="/home/ubuntu/EcoVision/ecolog/chute_d-2023-11-01T13:04:39.014000.txt", # this does not have to exist
-                    # colour=None, # "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
-                    colour_filename="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
-                    depth_filename="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")
+# SendItToCloudServer(url_address="http://127.0.0.1:5001", timeout=10,
+#                     stamp_filename="/home/ubuntu/EcoVision/ecolog/chute_d-2023-11-01T13:04:39.014000.txt", # this does not have to exist
+#                     # colour=None, # "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
+#                     colour_filename="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
+#                     depth_filename="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")
 
+SendItToCloudServer(url_address="http://127.0.0.1:5001", timeout=10,
+                    stamp_filename="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-01T13:04:39.014000.txt", # this does not have to exist
+                    colour_filename="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
+                    depth_filename="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")

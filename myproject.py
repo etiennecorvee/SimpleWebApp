@@ -10,6 +10,8 @@ import cv2
 from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _get_image_content_b64
 
+MOVE=False
+
 # too big proces in image put etxt plus timestamp shall be displayed
 # mm empty !!!
 # duplicated between procssed and last ... why ?
@@ -92,12 +94,12 @@ def nocolour(colour_filename: str):
         return {"details": errMsg}, 400
     
     try:
-        move_files_and_update_last(info="nocolour", nbFiles=2, fourfiles=fourfiles,
+        move_files_and_update_last(MOVE=MOVE, info="nocolour", nbFiles=2, fourfiles=fourfiles,
             srcDir=app.config['UPLOAD'], dstDir=app.config['PROCESSED'], lastDir=app.config['LAST'])
     except Exception as err:
         msgErr = "[ERROR] /nolour/{} failed with error={}".format(colour_filename, err)
         print(msgErr)
-        return {"details": err}, 400
+        return {"details": msgErr}, 400
 
 @app.route("/process/<colour_filename>", methods=["POST"])
 def process(colour_filename: str):
@@ -124,13 +126,13 @@ def process(colour_filename: str):
     if output.returncode != 0:
         print("[INFO] stdout: ", bytes.decode(output.stdout))
         try:
-            move_files_and_update_last(info="failed_mm", nbFiles=3, fourfiles=fourfiles,
+            move_files_and_update_last(MOVE=MOVE, info="failed_mm", nbFiles=3, fourfiles=fourfiles,
                 srcDir=app.config['UPLOAD'], dstDir=app.config['FAILED_MM'], lastDir=app.config['LAST'], debug=True)
         except Exception as err:
-            msgErr = "[ERROR] /process/{} failed, returned code {} error={}, additional error={}".format(
-                output.returncode, bytes.decode(output.stderr), colour_filename, err)
-            print(msgErr)
-            return {"details": err}, 400
+            errMsg = "[ERROR] /process/{} failed, returned code {} error={}, additional error={}".format(
+                output.returncode, bytes.decode(output.stderr), colour_filename)
+            print(errMsg, err)
+            return {"details": errMsg}, 400
     else:
         outputfilename = colour_filename.strip(".png") + ".json"
         jsonPredPath = os.path.join(app.config['MM_OUTPUT_DIR'], outputfilename)
@@ -153,12 +155,12 @@ def process(colour_filename: str):
         print("[INFO] mmdetection results data: ", data)
         
         try:
-            move_files_and_update_last(info="processed", nbFiles=4, fourfiles=fourfiles,
+            move_files_and_update_last(MOVE=MOVE, info="processed", nbFiles=4, fourfiles=fourfiles,
                 srcDir=app.config['UPLOAD'], dstDir=app.config['PROCESSED'], lastDir=app.config['LAST'], debug=True)
         except Exception as err:
-            msgErr = "[ERROR] /process/{} mmdetection ok but moving file update failed with error={}".format(colour_filename, err)
+            msgErr = "[ERROR] /process/{} mmdetection ok but moving file update failed".format(colour_filename, err)
             print(msgErr)
-            return {"details": err}, 400
+            return {"details": msgErr}, 400
         
         return { "details": json.dumps(data) }, 200
     
@@ -323,5 +325,21 @@ def result_api(camId: str):
         print("[ERROR]/result: reached end of endpoint")
         return _get_image_content_b64("images/error.png")
 
+# @app.route('/resultListProcessed/<string:camId>', methods=['GET'])
+# def resultListProcessed(camId: str):
+@app.route('/resultListProcessed', methods=['GET'])
+def resultListProcessed():
+    print(" ... resultListProcessed")
+    output = []
+    for filename in os.listdir(app.config['PROCESSED']):
+        if "depth" in filename and ".png" in filename:
+            output.append(filename)
+            
+            # todo to delete
+            output.append(filename)
+            
+    print(" ... resultListProcessed output", output)
+    return output
+    
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)
