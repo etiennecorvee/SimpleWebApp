@@ -331,15 +331,32 @@ def result_api(camId: str):
 def resultListProcessed():
     print(" ... resultListProcessed")
     output = []
+    output2=""
+    response_html = '["'
+    output3 = {}
     for filename in os.listdir(app.config['PROCESSED']):
         if "depth" in filename and ".png" in filename:
             output.append(filename)
+            output2 += filename + "\n"
             
             # todo to delete
             output.append(filename)
+            output2 += filename + "\n"
+            
+            output3["item"] = filename
+            output3["item2"] = filename
+            
+            response_html += filename + ","
+            response_html += filename + ","
             
     print(" ... resultListProcessed output", output)
-    return output
+    
+    response_html += '"]'
+    return response_html
+    
+    
+    # return output
+    return output2
     
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)

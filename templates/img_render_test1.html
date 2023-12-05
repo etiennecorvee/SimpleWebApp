@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AJAX Example</title>
+</head>
+<body>
+
+<div id="result">Data will be displayed here.</div>
+
+<script>
+    // Function to make an AJAX request
+    function makeAjaxRequest() {
+        // Create a new XMLHttpRequest object
+        var xhr = new XMLHttpRequest();
+
+        var urlHost = window.location.host
+        var urlProtocol = window.location.protocol
+        var urlRoot = urlProtocol + "//" + urlHost
+        const url2 = urlRoot + "/resultListProcessed";
+
+
+        // Define the request method, URL, and whether it should be asynchronous
+        xhr.open('GET', url2, true);
+
+        // Set up a function to handle the response
+        xhr.onreadystatechange = function () {
+            // Check if the request is complete
+            if (xhr.readyState === 4) {
+                // Check if the request was successful (status code 200)
+                if (xhr.status === 200) {
+                    // Parse the JSON response
+                    var data = JSON.parse(xhr.responseText);
+
+                    // Update the content of the 'result' div
+                    document.getElementById('result').innerHTML = 'Title: ' + data.title + '<br>Body: ' + data.body;
+                    document.getElementById('result2').innerHTML = "data=" + data;
+                } else {
+                    // Handle errors
+                    console.error('Error: ' + xhr.status);
+                }
+            }
+        };
+
+        // Send the request
+        xhr.send();
+    }
+
+    // Call the function when the page loads
+    window.onload = function () {
+        makeAjaxRequest();
+    };
+</script>
+
+</body>
+</html>
