@@ -217,16 +217,14 @@
             var urlRoot = urlProtocol + "//" + urlHost
             // console.log(" ... urlRoot:" + urlRoot)
 
-here get back ups images correspinding to var 'text' above 
 
-            const url = urlRoot + "/result/" + camId;
+            const url3 = urlRoot + "/processedimage/" + camId + "/" + text;
             $.ajax({
-                // url: 'http://127.0.0.1:5000/result/'+camId,
-                url: url,
+                url: url3,
                 type: 'GET',
                 contentType: "image/png",
                 success: function(result) {
-                document.getElementById('imagepast').src = 'data:image/gif;base64,' + result;
+                    document.getElementById('processedimage').src = 'data:image/gif;base64,' + result;
                 }
             });
 
@@ -299,7 +297,7 @@ here get back ups images correspinding to var 'text' above
 
     </script> 
 
-    <img id="imagepast">
+    <img id="processedimage">
 
 </div>
 

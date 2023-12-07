@@ -214,6 +214,17 @@ def depth(depthstem: str):
 
     return {"details": "colour upload success"}, 200
 
+@app.route('/processedimage/<string:camId>/<string:filename>', methods=['GET'])
+def processedimage(camId: str, filename: str):
+    fullpath = os.path.join(app.config['PROCESSED'], filename)
+    print(" ... ... processedimage, camId", camId, "filename", filename, "fullpath", fullpath)
+    if os.path.isfile(fullpath) is False:
+        print(" ... ...does not exist")
+        return _get_image_content_b64("images/error.png")
+    else:
+        print(" ... ...ok")
+        return _get_image_content_b64(fullpath)
+
 @app.route('/result/<string:camId>', methods=['GET'])
 def result_api(camId: str):
     
@@ -343,13 +354,14 @@ def resultListProcessed():
         if "depth" in filename and ".png" in filename:
             output.append(filename)
             
-            output2 += filename + str(index+0) + "\n"
-            output2 += filename + str(index+1) + "\n"
-            output2 += filename + str(index+2) + "\n"
+            # output2 += filename + str(index+0) + "\n"
+            # output2 += filename + str(index+1) + "\n"
+            # output2 += filename + str(index+2) + "\n"
             
             # todo to delete
             output.append(filename)
-            output2 += filename + str(index+3) 
+            # output2 += filename + str(index+3)
+            output2 += filename
             if index != len(listfilenames)-1:
                 output2 += "\n"
             
