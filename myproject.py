@@ -6,6 +6,7 @@ from flask import request, render_template
 from logging import getLogger
 import subprocess
 import pathlib
+import shutil
 import cv2
 from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _get_image_content_b64
@@ -225,6 +226,22 @@ def processedimage(camId: str, filename: str):
         print(" ... ...ok")
         return _get_image_content_b64(fullpath)
 
+@app.route('/deleteprocessedimage/<string:camId>/<string:filename>', methods=['DELETE'])
+def deleteprocessedimage(camId: str, filename: str):
+    fullpath = os.path.join(app.config['PROCESSED'], filename)
+    print(" ... ... deleteprocessedimage, camId", camId, "filename", filename, "fullpath", fullpath)
+    if os.path.isfile(fullpath) is False:
+        print(" ... ...does not exist")
+        return {"details": "KO: file dos not exist to be deleted"}, 400
+    else:
+        print(" ... ...ok")
+        try:
+            os.remove(fullpath)
+            return {"details": "OK: file deleted"}, 200
+        except Exception as err:
+            print("removed failed:", err)
+            return {"details": "KO: file to be deleted failed"}, 400
+
 @app.route('/result/<string:camId>', methods=['GET'])
 def result_api(camId: str):
     
@@ -347,7 +364,8 @@ def resultListProcessed():
     output3 = {}
     
     listfilenames = os.listdir(app.config['PROCESSED'])
-    print(" ... listfilenames", listfilenames)
+    listfilenames = sorted(listfilenames)
+    # print(" ... listfilenames", listfilenames)
     for index in range(len(listfilenames)):
         filename = listfilenames[index]
     # for filename in :
@@ -375,7 +393,7 @@ def resultListProcessed():
                 response_html += ","
                 
             
-    print(" ... resultListProcessed output", output)
+    # print(" ... resultListProcessed output", output)
     
     response_html += '"]'
     return output2
