@@ -334,25 +334,39 @@ def resultListProcessed():
     output2=""
     response_html = '["'
     output3 = {}
-    for filename in os.listdir(app.config['PROCESSED']):
+    
+    listfilenames = os.listdir(app.config['PROCESSED'])
+    print(" ... listfilenames", listfilenames)
+    for index in range(len(listfilenames)):
+        filename = listfilenames[index]
+    # for filename in :
         if "depth" in filename and ".png" in filename:
             output.append(filename)
-            output2 += filename + "\n"
+            
+            output2 += filename + str(index+0) + "\n"
+            output2 += filename + str(index+1) + "\n"
+            output2 += filename + str(index+2) + "\n"
             
             # todo to delete
             output.append(filename)
-            output2 += filename + "\n"
+            output2 += filename + str(index+3) 
+            if index != len(listfilenames)-1:
+                output2 += "\n"
             
             output3["item"] = filename
             output3["item2"] = filename
             
             response_html += filename + ","
-            response_html += filename + ","
+            response_html += filename
+            
+            if index != len(listfilenames)-1:
+                response_html += ","
+                
             
     print(" ... resultListProcessed output", output)
     
     response_html += '"]'
-    return response_html
+    return output2
     
     
     # return output
