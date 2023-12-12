@@ -13,6 +13,11 @@ from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _ge
 
 MOVE=False
 
+
+# add select box for each case: failed + ... + wocoour + the one we have with overlap drwan detection IA
+# firewall
+
+
 # too big proces in image put etxt plus timestamp shall be displayed
 # mm empty !!!
 # duplicated between procssed and last ... why ?
@@ -70,6 +75,7 @@ app.config['UPLOAD'] = os.path.join(RESULTS_PATH, "uploads")
 app.config['PROCESSED'] = os.path.join(RESULTS_PATH, "processed")
 app.config['FAILED_MM'] = os.path.join(RESULTS_PATH, "failed_mm")
 app.config['LAST'] = os.path.join(RESULTS_PATH, "last")
+app.config['ALIVE'] = os.path.join(RESULTS_PATH, "alive")
 app.config['MM_OUTPUT_DIR'] = os.path.join(PROJ_PATH, "outputs", "preds")
 
 try:
@@ -84,6 +90,56 @@ def hello():
 @app.route("/")
 def upload_file():
     return render_template('img_render.html')
+
+@app.route("/alive", methods=["POST"])
+def alive_from():
+    
+    # for files =  list files in app.config['ALIVE']
+    # if one or zero file: ok add one more
+    # if 2 files, delete oldest created one and add new one
+    # if more than 2: delete all except the mos recent one
+    # in the last 2 cases, get the most recently created file and delete the rest
+    
+    # YO: no need to get more recent time : get it with sorted function insteaf
+    # os.stat(path).st_birthtime
+    
+    print(" ... received alive json", request.json())
+    
+    listfilenames = os.listdir(app.config['ALIVE'])
+    if len(listfilenames) > 1:
+        listfilenames = sorted(listfilenames)
+        lastFilename = listfilenames[len(listfilenames)-1]
+        for index in range(len(listfilenames)-1):
+            filename = listfilenames[index]
+            filepath = os.path.join(app.config['ALIVE'], filename)
+            if os.path.isfile(filepath) is False:
+                return {"details": "failed to find a file"}, 500
+            os.remove(filepath)
+            if os.path.isfile(filepath) is True:
+                return {"details": "failed to delete a file"}, 500
+        
+        listfilenames = os.listdir(app.config['ALIVE'])
+        if len(listfilenames) != 1:
+            return {"details": "failed to delete all but last/most recent file"}, 500
+    
+    
+    create filename with this time stmap
+    time.strftime("%Y-%m-%dT%H-%M-%S")
+    
+    print delta detlat rtimestamp
+    
+    here
+    
+    
+    import time
+timestr = time.strftime("%Y%m%d-%H%M%S")
+    
+    else:
+        lastFilename
+    
+    here
+
+    return {"details": "ok your alive"}, 200 
 
 @app.route("/nocolour/<colour_filename>", methods=["POST"])
 def nocolour(colour_filename: str):
