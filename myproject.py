@@ -3,6 +3,8 @@ import time
 import json
 from flask import Flask
 from flask import request, render_template
+from flask import redirect, url_for
+import flask_login
 from logging import getLogger
 import subprocess
 import pathlib
@@ -12,6 +14,17 @@ from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _get_image_content_b64
 
 MOVE=False
+
+
+# TODO 1
+    # create filename with this time stmap
+    # time.strftime("%Y-%m-%dT%H-%M-%S")
+    
+    # print delta detlat rtimestamp
+    
+    # here
+
+
 
 
 # add select box for each case: failed + ... + wocoour + the one we have with overlap drwan detection IA
@@ -64,6 +77,15 @@ TODO purge: if filename too old => moved to /backup_results
 logger = getLogger(__name__)
 
 app = Flask(__name__)
+app.secret_key = 'e2b44b12-9b66-11ee-9b29-00155db5e5d5'
+
+login_manager = flask_login.LoginManager()
+login_manager.init_app(app)
+
+# Our mock database.
+users = {'usereco': {'password': 'routoutaille'}}
+class User(flask_login.UserMixin): ...
+
 
 DEBUG = True
 
@@ -83,15 +105,87 @@ try:
 except Exception as err:
     raise Exception(err)
 
-@app.route("/hello")
-def hello():
-    return "<h1 style='color:blue'>Hello There!</h1>"
 
-@app.route("/")
-def upload_file():
+@login_manager.user_loader
+def user_loader(email):
+    if email not in users:
+        return
+    
+    user = User()
+    user.id = email
+    return user
+
+# @login_manager.request_loader
+# def request_loader(request):
+#     email = request.form.get('email')
+#     if email not in users:
+#         return
+    
+#     user = User()
+#     user.id = email
+#     return user
+
+# @app.route("/hello")
+# def hello():
+#     return "<h1 style='color:blue'>Hello There!</h1>"
+
+# without login
+# @app.route("/")
+# def upload_file():
+#     return render_template('img_render.html')
+
+# with login
+@app.route('/img_render', methods = ['GET', 'POST'])
+@flask_login.login_required
+def img_render():
     return render_template('img_render.html')
 
+
+@app.route('/', methods = ['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        formDict = request.form.to_dict()
+        email = formDict.get('email')
+
+        if email in users:
+            if users[email]['password'] == formDict.get('password'):
+                user = User()
+                user.id = email
+                flask_login.login_user(user)
+                # return redirect(url_for('protected_page_1'))
+        
+        if formDict.get('page'):
+            return redirect(url_for('page'))
+        elif formDict.get('img_render'):
+            # return redirect(url_for('protected_page_1'))
+            return redirect(url_for('img_render'))
+        # elif formDict.get('protected_page_2'):
+        #     return redirect(url_for('protected_page_2'))
+        elif formDict.get('logout'):
+            return redirect(url_for('logout'))
+
+    return render_template('login.html')
+
+@app.route('/page', methods=['GET','POST'])
+def page():
+    if request.method == 'POST':
+        formDict = request.form.to_dict()
+        print('formDcit::', formDict)
+        if formDict.get('page'):
+            return redirect(url_for('page'))
+        elif formDict.get('img_render'):
+            # return redirect(url_for('protected_page_1'))
+            return redirect(url_for('img_render.html'))
+        # elif formDict.get('protected_page_2'):
+        #     return redirect(url_for('protected_page_2'))
+        elif formDict.get('logout'):
+            return redirect(url_for('logout'))
+        elif formDict.get('login'):
+            return redirect(url_for('login'))
+    return render_template('page.html')
+    
 @app.route("/alive", methods=["POST"])
+@flask_login.login_required
 def alive_from():
     
     # for files =  list files in app.config['ALIVE']
@@ -123,25 +217,13 @@ def alive_from():
             return {"details": "failed to delete all but last/most recent file"}, 500
     
     
-    create filename with this time stmap
-    time.strftime("%Y-%m-%dT%H-%M-%S")
-    
-    print delta detlat rtimestamp
-    
-    here
-    
-    
-    import time
-timestr = time.strftime("%Y%m%d-%H%M%S")
-    
-    else:
-        lastFilename
-    
-    here
+    # TODO 1    
+
 
     return {"details": "ok your alive"}, 200 
 
 @app.route("/nocolour/<colour_filename>", methods=["POST"])
+@flask_login.login_required
 def nocolour(colour_filename: str):
     try:
         fourfiles = get_4_filenames_from_colour_name(colour_filename=colour_filename, debug=DEBUG)
@@ -159,6 +241,7 @@ def nocolour(colour_filename: str):
         return {"details": msgErr}, 400
 
 @app.route("/process/<colour_filename>", methods=["POST"])
+@flask_login.login_required
 def process(colour_filename: str):
     colourPath = os.path.join(app.config['UPLOAD'], colour_filename)
     if os.path.isfile(colourPath) is False:
@@ -224,6 +307,7 @@ def process(colour_filename: str):
     return {"details": "failure"}, 400
 
 @app.route("/stamp", methods=["POST"])
+@flask_login.login_required
 def stamp():
     content_type = request.headers.get('Content-Type')
     nb_bytes = len(request.data) # request.data is of type "bytes"
@@ -239,6 +323,7 @@ def stamp():
     return {"details": "stamp upload success"}, 200
 
 @app.route("/colour/<colourstem>", methods=["POST"])
+@flask_login.login_required
 def colour(colourstem: str):
     try:
         # (json_content, status_code, content_file) = _get_doc(request_headers=request.headers, request_data=request.data, base64mode=False)
@@ -256,6 +341,7 @@ def colour(colourstem: str):
     return {"details": "colour upload success"}, 200
 
 @app.route("/depth/<depthstem>", methods=["POST"])
+@flask_login.login_required
 def depth(depthstem: str):
     
     try:
@@ -272,6 +358,7 @@ def depth(depthstem: str):
     return {"details": "colour upload success"}, 200
 
 @app.route('/processedimage/<string:camId>/<string:filename>', methods=['GET'])
+@flask_login.login_required
 def processedimage(camId: str, filename: str):
     fullpath = os.path.join(app.config['PROCESSED'], filename)
     print(" ... ... processedimage, camId", camId, "filename", filename, "fullpath", fullpath)
@@ -283,6 +370,7 @@ def processedimage(camId: str, filename: str):
         return _get_image_content_b64(fullpath)
 
 @app.route('/deleteprocessedimage/<string:camId>/<string:filename>', methods=['DELETE'])
+@flask_login.login_required
 def deleteprocessedimage(camId: str, filename: str):
     fullpath = os.path.join(app.config['PROCESSED'], filename)
     print(" ... ... deleteprocessedimage, camId", camId, "filename", filename, "fullpath", fullpath)
@@ -299,6 +387,7 @@ def deleteprocessedimage(camId: str, filename: str):
             return {"details": "KO: file to be deleted failed"}, 400
 
 @app.route('/result/<string:camId>', methods=['GET'])
+@flask_login.login_required
 def result_api(camId: str):
     
     infoPath = os.path.join(app.config['LAST'], "info.txt")
@@ -412,6 +501,7 @@ def result_api(camId: str):
 # @app.route('/resultListProcessed/<string:camId>', methods=['GET'])
 # def resultListProcessed(camId: str):
 @app.route('/resultListProcessed', methods=['GET'])
+@flask_login.login_required
 def resultListProcessed():
     print(" ... resultListProcessed")
     output = []
@@ -457,6 +547,11 @@ def resultListProcessed():
     
     # return output
     return output2
-    
+
+@app.route('/logout')
+def logout():
+    flask_login.logout_user()
+    return redirect(url_for('login'))
+
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5001)
