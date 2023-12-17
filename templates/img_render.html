@@ -48,8 +48,9 @@
                 url: url,
                 type: 'GET',
                 contentType: "image/png",
+                data: { "username": {{ USERNAME }}, "password": {{ PASSWORD }} },
                 success: function(result) {
-                document.getElementById('image').src = 'data:image/gif;base64,' + result;
+                    document.getElementById('image').src = 'data:image/gif;base64,' + result;
                 }
             });
 
@@ -114,6 +115,7 @@
                 url: url2,
                 async: false,
                 type: 'GET',
+                data: { "username": {{ USERNAME }}, "password": {{ PASSWORD }} },
                 success: function(res)
                 {
                     async function deleteList(){
@@ -220,6 +222,7 @@
                 $.ajax({
                     url: url4,
                     type: 'DELETE',
+                    data: { "username": {{ USERNAME }}, "password": {{ PASSWORD }} },
                     success: function(result) {
                         console.log(" ... deleted")
                     }
@@ -256,6 +259,7 @@
                 url: url3,
                 type: 'GET',
                 contentType: "image/png",
+                data: { "username": {{ USERNAME }}, "password": {{ PASSWORD }} },
                 success: function(result) {
                     document.getElementById('processedimage').src = 'data:image/gif;base64,' + result;
                 }
