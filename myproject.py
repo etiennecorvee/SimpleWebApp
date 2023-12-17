@@ -16,6 +16,7 @@ from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _ge
 
 MOVE=False
 
+# remove the duplicated function (username and password) ?
 
 # TODO 1
     # create filename with this time stmap
@@ -153,6 +154,7 @@ def user_loader(email):
 @app.route('/img_render', methods = ['GET', 'POST'])
 @flask_login.login_required
 def img_render():
+    # return render_template('img_render.html', USERNAME=app.config["USERNAME"], PASSWORD=app.config["PASSWORD"])
     return render_template('img_render.html')
 
 @app.route('/', methods = ['GET', 'POST'])
@@ -183,7 +185,9 @@ def login():
     return render_template('login.html')
 
 def check_user_pass():
+
     if request.is_json is False:
+        print(" ... check_user_pass ... , request.is_json KO reyurn 400", request.is_json)
         return "bad input request", 400
 
     if request.json is None:
@@ -263,7 +267,7 @@ def page():
             return redirect(url_for('page'))
         elif formDict.get('img_render'):
             # return redirect(url_for('protected_page_1'))
-            return redirect(url_for('img_render.html'))
+            return redirect(url_for('img_render'))
         # elif formDict.get('protected_page_2'):
         #     return redirect(url_for('protected_page_2'))
         elif formDict.get('logout'):
@@ -528,14 +532,14 @@ def deleteprocessedimage_v(camId: str, filename: str):
             print("removed failed:", err)
             return {"details": "KO: file to be deleted failed"}, 400
 
-@app.route('/result/<string:camId>', methods=['GET'])
+@app.route('/result/<string:camId>', methods=['GET'])  # get to post because ajax needs to send username and password
 def result_api(camId: str):
     ret = check_user_pass()
     if ret is not None:
         return ret
     return result_api_v(camId=camId)
 
-@app.route('/result/<string:camId>', methods=['GET'])
+@app.route('/result_v/<string:camId>', methods=['GET'])
 @flask_login.login_required
 def result_api_v(camId: str):
     
@@ -647,7 +651,7 @@ def result_api_v(camId: str):
         print("[ERROR]/result: reached end of endpoint")
         return _get_image_content_b64("images/error.png")
 
-@app.route('/resultListProcessed', methods=['GET'])
+@app.route('/resultListProcessed', methods=['GET']) # get to post because ajax needs to send username and password
 def resultListProcessed():
     ret = check_user_pass()
     if ret is not None:
@@ -656,7 +660,7 @@ def resultListProcessed():
 
 # @app.route('/resultListProcessed/<string:camId>', methods=['GET'])
 # def resultListProcessed(camId: str):
-@app.route('/resultListProcessed', methods=['GET'])
+@app.route('/resultListProcessed_v', methods=['GET'])
 @flask_login.login_required
 def resultListProcessed_v():
     print(" ... resultListProcessed")
