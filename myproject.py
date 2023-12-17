@@ -543,9 +543,8 @@ def resultListProcessed():
     
     response_html += '"]'
     
-    print(" ... return list:", output2)
-    
-    
+    # print(" ... return list:", output2)
+     
     return output2
         
     # return output
