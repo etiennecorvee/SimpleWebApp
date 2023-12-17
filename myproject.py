@@ -101,6 +101,12 @@ app.config['LAST'] = os.path.join(RESULTS_PATH, "last")
 app.config['ALIVE'] = os.path.join(RESULTS_PATH, "alive")
 app.config['MM_OUTPUT_DIR'] = os.path.join(PROJ_PATH, "outputs", "preds")
 
+# when using gunicorn, we have to set username and password via env vars
+if "USERNAME" in os.environ:
+    app.config["USERNAME"] = os.environ["USERNAME"]
+if "PASSWORD" in os.environ:
+    app.config["PASSWORD"] = os.environ["PASSWORD"]
+
 try:
     create_dirs(folders=[RESULTS_PATH, 
                          app.config['UPLOAD'], 
@@ -707,7 +713,7 @@ def logout():
 
 if __name__ == "__main__":
     
-    parser = argparse.ArgumentParser(description='ecovision threads manager')
+    parser = argparse.ArgumentParser(description='simple web app')
     parser.add_argument('--debug', action='store_true', default=False)
     parser.add_argument("-username", dest="username", required=True, type=str, help="username")
     parser.add_argument("-password", dest="password", required=True, type=str, help="password")

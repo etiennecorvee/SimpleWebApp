@@ -7,7 +7,7 @@ User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/SimpleWebApp
 Environment="PATH=/home/ubuntu/SimpleWebApp/venv/bin"
-ExecStart=/home/ubuntu/SimpleWebApp/venv/bin/gunicorn --workers 1 --bind 0.0.0.0:5001 wsgi:app
+ExecStart=export USERNAME=$(cat /etc/ecodata/username.txt) && export PASSWORD=$(cat /etc/ecodata/password.txt) && /home/ubuntu/SimpleWebApp/venv/bin/gunicorn --workers 1 --bind 0.0.0.0:5001 wsgi:app
 
 [Install]
 WantedBy=multi-user.target
