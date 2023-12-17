@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import argparse
 from flask import Flask
 from flask import request, render_template
 from flask import redirect, url_for
@@ -83,7 +84,7 @@ login_manager = flask_login.LoginManager()
 login_manager.init_app(app)
 
 # Our mock database.
-users = {'usereco': {'password': 'routoutaille'}}
+# users = {'userhere': {'password': 'passwordhere'}}
 class User(flask_login.UserMixin): ...
 
 
@@ -101,14 +102,22 @@ app.config['ALIVE'] = os.path.join(RESULTS_PATH, "alive")
 app.config['MM_OUTPUT_DIR'] = os.path.join(PROJ_PATH, "outputs", "preds")
 
 try:
-    create_dirs(folders=[RESULTS_PATH, app.config['UPLOAD'], app.config['PROCESSED'], app.config['FAILED_MM'], app.config['LAST'], "outputs"])
+    create_dirs(folders=[RESULTS_PATH, 
+                         app.config['UPLOAD'], 
+                         app.config['PROCESSED'], 
+                         app.config['FAILED_MM'], 
+                         app.config['LAST'],
+                         app.config['ALIVE'],
+                         "outputs"])
 except Exception as err:
     raise Exception(err)
 
 
 @login_manager.user_loader
 def user_loader(email):
-    if email not in users:
+
+    if email != app.config['USERNAME']: 
+    # if email not in users:
         return
     
     user = User()
@@ -140,15 +149,16 @@ def user_loader(email):
 def img_render():
     return render_template('img_render.html')
 
-
 @app.route('/', methods = ['GET', 'POST'])
 def login():
     if request.method == 'POST':
         formDict = request.form.to_dict()
         email = formDict.get('email')
-
-        if email in users:
-            if users[email]['password'] == formDict.get('password'):
+    
+        # if email in users:
+        if email == app.config['USERNAME']:
+            # if users[email]['password'] == formDict.get('password'):
+            if app.config['PASSWORD'] == formDict.get('password'):
                 user = User()
                 user.id = email
                 flask_login.login_user(user)
@@ -165,6 +175,78 @@ def login():
             return redirect(url_for('logout'))
 
     return render_template('login.html')
+
+def check_user_pass():
+    if request.is_json is False:
+        return "bad input request", 400
+
+    if request.json is None:
+        return "bad input request", 400
+        
+    if 'username' not in request.json:
+        return "wrong input content", 400
+    
+    if 'password' not in request.json:
+        return "wrong input content", 400
+        
+    username = request.json.get('username')
+    password = request.json.get('password')
+    
+    # if username in users:
+    if username == app.config['USERNAME']:
+        # print(" ... username in db: ")
+        # if users[username]['password'] == password:
+        if app.config['PASSWORD'] == password:
+            # print(" ... correct password: ")
+            user = User()
+            user.id = username
+            success = flask_login.login_user(user)
+            # print(" ... login: ", success)
+            if success is True:
+                return None
+
+    return "unauthorized user", 401
+
+@app.route('/version', methods = ['GET'])
+def version():
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return version_v()
+
+@app.route('/version_v', methods = ['GET'])
+@flask_login.login_required
+def version_v():
+    
+    if request.is_json is False:
+        return "bad input request", 400
+
+    if request.json is None:
+        return "bad input request", 400
+        
+    if 'username' not in request.json:
+        return "wrong input content", 400
+    
+    if 'password' not in request.json:
+        return "wrong input content", 400
+        
+    username = request.json.get('username')
+    password = request.json.get('password')
+
+    # if username in users:
+    if username == app.config['USERNAME']:
+        # print(" ... username in db: ")
+        # if users[username]['password'] == password:
+        if app.config['PASSWORD'] == password:
+            # print(" ... correct password: ")
+            user = User()
+            user.id = username
+            success = flask_login.login_user(user)
+            # print(" ... login: ", success)
+            if success is True:
+                return "1.0.0", 200
+    
+    return "unauthorized user", 401
 
 @app.route('/page', methods=['GET','POST'])
 def page():
@@ -183,10 +265,17 @@ def page():
         elif formDict.get('login'):
             return redirect(url_for('login'))
     return render_template('page.html')
-    
-@app.route("/alive", methods=["POST"])
+
+@app.route('/alive', methods = ['POST'])
+def alive():
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return alive_from_v()
+
+@app.route("/alive_v", methods=["POST"])
 @flask_login.login_required
-def alive_from():
+def alive_from_v():
     
     # for files =  list files in app.config['ALIVE']
     # if one or zero file: ok add one more
@@ -196,9 +285,7 @@ def alive_from():
     
     # YO: no need to get more recent time : get it with sorted function insteaf
     # os.stat(path).st_birthtime
-    
-    print(" ... received alive json", request.json())
-    
+        
     listfilenames = os.listdir(app.config['ALIVE'])
     if len(listfilenames) > 1:
         listfilenames = sorted(listfilenames)
@@ -222,9 +309,16 @@ def alive_from():
 
     return {"details": "ok your alive"}, 200 
 
-@app.route("/nocolour/<colour_filename>", methods=["POST"])
+@app.route('/nocolour', methods = ['POST'])
+def nocolour():
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return nocolour_v()
+
+@app.route("/nocolour_v/<colour_filename>", methods=["POST"])
 @flask_login.login_required
-def nocolour(colour_filename: str):
+def nocolour_v(colour_filename: str):
     try:
         fourfiles = get_4_filenames_from_colour_name(colour_filename=colour_filename, debug=DEBUG)
     except Exception as err:
@@ -240,9 +334,16 @@ def nocolour(colour_filename: str):
         print(msgErr)
         return {"details": msgErr}, 400
 
-@app.route("/process/<colour_filename>", methods=["POST"])
+@app.route('/process', methods = ['POST'])
+def process():
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return process_v()
+
+@app.route("/process_v/<colour_filename>", methods=["POST"])
 @flask_login.login_required
-def process(colour_filename: str):
+def process_v(colour_filename: str):
     colourPath = os.path.join(app.config['UPLOAD'], colour_filename)
     if os.path.isfile(colourPath) is False:
         return {"details": "colour image path does not exist: {}".format(colourPath)}, 400
@@ -306,9 +407,16 @@ def process(colour_filename: str):
     
     return {"details": "failure"}, 400
 
-@app.route("/stamp", methods=["POST"])
-@flask_login.login_required
+@app.route('/stamp', methods = ['POST'])
 def stamp():
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return stamp_v()
+
+@app.route("/stamp_v", methods=["POST"])
+@flask_login.login_required
+def stamp_v():
     content_type = request.headers.get('Content-Type')
     nb_bytes = len(request.data) # request.data is of type "bytes"
     textData = request.data.decode("utf-8")
@@ -322,9 +430,16 @@ def stamp():
         return {"details": errMsg}, 400
     return {"details": "stamp upload success"}, 200
 
-@app.route("/colour/<colourstem>", methods=["POST"])
-@flask_login.login_required
+@app.route('/colour/<colourstem>', methods = ['POST'])
 def colour(colourstem: str):
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return colour_v(colourstem=colourstem)
+
+@app.route("/colour_v/<colourstem>", methods=["POST"])
+@flask_login.login_required
+def colour_v(colourstem: str):
     try:
         # (json_content, status_code, content_file) = _get_doc(request_headers=request.headers, request_data=request.data, base64mode=False)
         content_file = _get_doc(request_headers=request.headers, request_data=request.data, base64mode=False)
@@ -340,9 +455,16 @@ def colour(colourstem: str):
 
     return {"details": "colour upload success"}, 200
 
-@app.route("/depth/<depthstem>", methods=["POST"])
-@flask_login.login_required
+@app.route('/depth/<depthstem>', methods = ['POST'])
 def depth(depthstem: str):
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return depth_v(depthstem=depthstem)
+
+@app.route("/depth_v/<depthstem>", methods=["POST"])
+@flask_login.login_required
+def depth_v(depthstem: str):
     
     try:
         content_file = _get_doc(request_headers=request.headers, request_data=request.data, base64mode=False)
@@ -357,9 +479,16 @@ def depth(depthstem: str):
 
     return {"details": "colour upload success"}, 200
 
-@app.route('/processedimage/<string:camId>/<string:filename>', methods=['GET'])
-@flask_login.login_required
+@app.route('/processedimage/<string:camId>/<string:filename>', methods = ['GET'])
 def processedimage(camId: str, filename: str):
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return processedimage_v(camId=camId, filename=filename)
+
+@app.route('/processedimage_v/<string:camId>/<string:filename>', methods=['GET'])
+@flask_login.login_required
+def processedimage_v(camId: str, filename: str):
     fullpath = os.path.join(app.config['PROCESSED'], filename)
     print(" ... ... processedimage, camId", camId, "filename", filename, "fullpath", fullpath)
     if os.path.isfile(fullpath) is False:
@@ -370,8 +499,15 @@ def processedimage(camId: str, filename: str):
         return _get_image_content_b64(fullpath)
 
 @app.route('/deleteprocessedimage/<string:camId>/<string:filename>', methods=['DELETE'])
-@flask_login.login_required
 def deleteprocessedimage(camId: str, filename: str):
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return deleteprocessedimage_v(camId=camId, filename=filename)
+
+@app.route('/deleteprocessedimage_v/<string:camId>/<string:filename>', methods=['DELETE'])
+@flask_login.login_required
+def deleteprocessedimage_v(camId: str, filename: str):
     fullpath = os.path.join(app.config['PROCESSED'], filename)
     print(" ... ... deleteprocessedimage, camId", camId, "filename", filename, "fullpath", fullpath)
     if os.path.isfile(fullpath) is False:
@@ -387,8 +523,15 @@ def deleteprocessedimage(camId: str, filename: str):
             return {"details": "KO: file to be deleted failed"}, 400
 
 @app.route('/result/<string:camId>', methods=['GET'])
-@flask_login.login_required
 def result_api(camId: str):
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return result_api_v(camId=camId)
+
+@app.route('/result/<string:camId>', methods=['GET'])
+@flask_login.login_required
+def result_api_v(camId: str):
     
     infoPath = os.path.join(app.config['LAST'], "info.txt")
     if os.path.isfile(infoPath) is False:
@@ -498,11 +641,18 @@ def result_api(camId: str):
         print("[ERROR]/result: reached end of endpoint")
         return _get_image_content_b64("images/error.png")
 
+@app.route('/resultListProcessed', methods=['GET'])
+def resultListProcessed():
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return resultListProcessed_v()
+
 # @app.route('/resultListProcessed/<string:camId>', methods=['GET'])
 # def resultListProcessed(camId: str):
 @app.route('/resultListProcessed', methods=['GET'])
 @flask_login.login_required
-def resultListProcessed():
+def resultListProcessed_v():
     print(" ... resultListProcessed")
     output = []
     output2=""
@@ -556,4 +706,14 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == "__main__":
+    
+    parser = argparse.ArgumentParser(description='ecovision threads manager')
+    parser.add_argument('--debug', action='store_true', default=False)
+    parser.add_argument("-username", dest="username", required=True, type=str, help="username")
+    parser.add_argument("-password", dest="password", required=True, type=str, help="password")
+    args = parser.parse_args()
+    
+    app.config['USERNAME'] = args.username
+    app.config['PASSWORD'] = args.password
+    
     app.run(host='0.0.0.0', port=5001)
