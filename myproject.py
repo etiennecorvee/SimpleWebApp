@@ -542,11 +542,14 @@ def resultListProcessed():
     # print(" ... resultListProcessed output", output)
     
     response_html += '"]'
+    
+    print(" ... return list:", output2)
+    
+    
     return output2
-    
-    
+        
     # return output
-    return output2
+    # return output2
 
 @app.route('/logout')
 def logout():
