@@ -14,6 +14,9 @@ import cv2
 from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _get_image_content_b64
 
+SendItToCloudServer in simul, copy it to ecovision
+remove all the debug print starting with ... and forced debug 
+
 MOVE=False
 
 # remove the duplicated function (username and password) ?

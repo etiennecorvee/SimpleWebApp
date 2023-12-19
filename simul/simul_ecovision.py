@@ -68,36 +68,6 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
     # with login, we need to send json, so we need to send image png inside json
     # now send image mng dfepth inside jsoin alsonside user and pass
 
-# from black template    
-#     def upload(ip_address: str, input_filename: str) -> requests.Response:
-#     file_json = {
-#         "files": [
-#             {
-#                 "id": "file1",
-#                 "stream": (open(input_filename, "rb").read()).decode("iso-8859-1"),
-#                 "filename": os.path.basename(input_filename),
-#                 "content_type": "image/jpeg",
-#             }
-#         ]
-#     }
-#     return requests.post(
-#         url=ip_address + "/documents",
-#         headers={"Content-type": "application/json"},
-#         data=json.dumps(file_json),
-#         timeout=300,
-#     )
-    
-# def process(ip_address: str, sid: str) -> requests.Response:
-#     file_json = {
-#         "identifier": sid
-#     }
-#     return requests.post(
-#         url=ip_address + "/process",
-#         headers={"Content-type": "application/json"},
-#         data=json.dumps(file_json),
-#         timeout=300,
-#     )
-    
     entries = [(stamp, "/stamp", "application/json"), (depth, "/depth", "application/json"), (colour, "/colour", "application/json")]
     for entry in entries:
         if entry[0] is not None:
