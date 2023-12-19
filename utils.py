@@ -74,12 +74,13 @@ def parse_stamped_filename(filename: str, ext_with_dot: str, res_type: str, pref
                 
                 if debug is True:
                     print(" ... chute, day, temps", day_parts, " <>", temps_part)
-                if len(day_parts) == 3 and len(temps_part) > 0:
+                # if len(day_parts) == 3 and len(temps_part) > 0:
+                if len(day_parts) == 3 and len(temps_part) >= 3:
                     # foundOne = True
                     
                     # TODO add var separator in time part
                     # temps_parts = temps_part[0].split(":")
-                    temps_parts = temps_part
+                    temps_parts = temps_part[:3]
                     
                     output = Stamp(day_parts=day_parts, temps_parts=temps_parts, prefix=prefix)
                     if debug is True:
@@ -95,6 +96,7 @@ def get_4_filenames_from_colour_name(colour_filename: str, debug: bool=False) ->
         if debug is True:
             print("[DEBUG]get_4_filenames_from_colour_name '{}'".format(colour_filename))
         stamp = parse_stamped_filename(filename=colour_filename, ext_with_dot=".png", res_type="colour", debug=False)
+        print(" ... get_4_filenames_from_colour_name: stamp", stamp)
     except Exception as warn:
         msg = "[ERROR]get_4_filenames_from_colour_name: {}".format(warn)
         if debug is True:
@@ -169,6 +171,8 @@ def clean_dir_and_copy_file(info: str, srcdir: str, nbFiles: int, fourFiles: Lis
             filename = fourFiles[index]
             if filename is not None:
                 fout.write(filename+"\n")
+
+    print(" ... clean_dir_and_copy_file done")
 
 def printd(debug: bool, msg: str):
     if debug is True:
