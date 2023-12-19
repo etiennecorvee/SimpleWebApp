@@ -186,8 +186,7 @@ def login():
 
 def check_user_pass():
 
-    if request.is_json is False:
-        print(" ... check_user_pass ... , request.is_json KO reyurn 400", request.is_json)
+    if request.is_json is False: 
         return "bad input request", 400
 
     if request.json is None:
@@ -344,16 +343,19 @@ def nocolour_v(colour_filename: str):
         print(msgErr)
         return {"details": msgErr}, 400
 
-@app.route('/process', methods = ['POST'])
-def process():
+@app.route('/process/<colour_filename>', methods = ['POST'])
+def process(colour_filename: str):
+    print(" ... ... process")
     ret = check_user_pass()
     if ret is not None:
         return ret
-    return process_v()
+    print(" ... ... process: call process_v")
+    return process_v(colour_filename=colour_filename)
 
 @app.route("/process_v/<colour_filename>", methods=["POST"])
 @flask_login.login_required
 def process_v(colour_filename: str):
+    print(" ... ... process_v")
     colourPath = os.path.join(app.config['UPLOAD'], colour_filename)
     if os.path.isfile(colourPath) is False:
         return {"details": "colour image path does not exist: {}".format(colourPath)}, 400
@@ -366,6 +368,7 @@ def process_v(colour_filename: str):
         print(errMsg)
         return {"details": errMsg}, 400
     
+    print(" ... process_v, create cmd line")
     cmd_line = '''python -c "import sys; print(sys.executable)"
                   source /home/ubuntu/miniconda3/etc/profile.d/conda.sh
                   conda activate openmmlab
@@ -373,15 +376,21 @@ def process_v(colour_filename: str):
     
     print("[INFO] /process/{}: cmd_line: {}".format(colour_filename, cmd_line))
     output = subprocess.run(cmd_line, executable='/bin/bash', shell=True, capture_output=True)
+    print(" ... process_v, mm output.returncode", output.returncode)
     time.sleep(1)
     if output.returncode != 0:
         print("[INFO] stdout: ", bytes.decode(output.stdout))
         try:
+            
+            print(" ... fourfiles", fourfiles)
+            
+            # here format of timestamp, i replaced : by - 
+            
             move_files_and_update_last(MOVE=MOVE, info="failed_mm", nbFiles=3, fourfiles=fourfiles,
                 srcDir=app.config['UPLOAD'], dstDir=app.config['FAILED_MM'], lastDir=app.config['LAST'], debug=True)
         except Exception as err:
             errMsg = "[ERROR] /process/{} failed, returned code {} error={}, additional error={}".format(
-                output.returncode, bytes.decode(output.stderr), colour_filename)
+                colour_filename, output.returncode, bytes.decode(output.stderr), colour_filename)
             print(errMsg, err)
             return {"details": errMsg}, 400
     else:
@@ -419,6 +428,7 @@ def process_v(colour_filename: str):
 
 @app.route('/stamp', methods = ['POST'])
 def stamp():
+    print(" .................. STAMP ................")
     ret = check_user_pass()
     if ret is not None:
         return ret
@@ -428,12 +438,35 @@ def stamp():
 @flask_login.login_required
 def stamp_v():
     content_type = request.headers.get('Content-Type')
-    nb_bytes = len(request.data) # request.data is of type "bytes"
-    textData = request.data.decode("utf-8")
-    print("[INFO]/stamp: received stamp: ", content_type, nb_bytes, request.data, " => '{}'".format(textData))
+    
+    # nb_bytes = len(request.data) # request.data is of type "bytes"
+    # textData = request.data.decode("utf-8")
+    if request.json is None:
+        return {"details": "stamp content not json"}, 400
+    textData = request.json
+    # print("[INFO]/stamp: received stamp: ", content_type, nb_bytes, request.data, " => '{}'".format(textData))
+
+    print("[INFO]/stamp: received stamp: ", content_type, request.data, " => '{}' ({})".format(textData, type(textData)))
+    if isinstance(textData, dict) is False:
+        return {"details": "received content is not a json dict"}, 400
+    if "stamp" not in textData:
+        return {"details": "received content does not contain stamp"}, 400
+
+    # textData = json.loads(textData)
+
     
     try:
-        textData = get_stamp_from_request_stamp_data_and_create_empty_file(textData=textData, dstDir=app.config['UPLOAD'])
+        # textData = get_stamp_from_request_stamp_data_and_create_empty_file(textData=textData, dstDir=app.config['UPLOAD'])
+
+        filename = os.path.join(app.config['UPLOAD'], textData["stamp"] + ".txt")
+        try:
+            with open(filename, "w") as fout:
+                print("[INFO] stamp_v: creating simple stamp file ", filename)
+        except Exception as err:
+            msg = "[ERROR] could not create output file {} error={}".format(filename, err)
+            print(msg)
+            return {"details": msg}, 400
+
     except Exception as err:
         errMsg = "[ERROR]/stamp failed get_stamp_from_request_stamp_data: {}".format(err)
         print(errMsg)
@@ -451,8 +484,9 @@ def colour(colourstem: str):
 @flask_login.login_required
 def colour_v(colourstem: str):
     try:
+        # before login
         # (json_content, status_code, content_file) = _get_doc(request_headers=request.headers, request_data=request.data, base64mode=False)
-        content_file = _get_doc(request_headers=request.headers, request_data=request.data, base64mode=False)
+        content_file = _get_doc(request_headers=request.headers, request_data=request.json, base64mode=False)
     except Exception as err:
         return {"details": "/colour/{} get doc image failed: {}".format(colourstem, err)}, 400
         # return (dict_out, 400, content_file)
@@ -467,9 +501,11 @@ def colour_v(colourstem: str):
 
 @app.route('/depth/<depthstem>', methods = ['POST'])
 def depth(depthstem: str):
+    print(" ... depth")
     ret = check_user_pass()
     if ret is not None:
         return ret
+    print(" ... call depth_v")
     return depth_v(depthstem=depthstem)
 
 @app.route("/depth_v/<depthstem>", methods=["POST"])
@@ -477,11 +513,13 @@ def depth(depthstem: str):
 def depth_v(depthstem: str):
     
     try:
-        content_file = _get_doc(request_headers=request.headers, request_data=request.data, base64mode=False)
+        print(" ... depth_v get_doc")
+        content_file = _get_doc(request_headers=request.headers, request_data=request.json, base64mode=False)
     except Exception as err:
         return {"details": "/depth/{} get doc image failed: {}".format(depthstem, err)}, 400
         
     try:
+        print(" ... depth_v save_doc to ", app.config['UPLOAD'])
         save_doc(request_content_length=request.content_length, request_content_type=request.content_type, 
              filenamestem=depthstem, content_file=content_file, dstDir=app.config['UPLOAD'])
     except Exception as err:

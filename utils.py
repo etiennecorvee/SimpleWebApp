@@ -1,6 +1,7 @@
 import os
 import shutil
 import base64
+import json
 from io import BytesIO
 from typing import Union, Tuple, List
 # from flask import jsonify
@@ -32,7 +33,8 @@ def GetTempsString(input: Stamp) -> str:
     for index in range(len(input.temps_parts)):
         output += input.temps_parts[index]
         if index != len(input.temps_parts)-1:
-            output += ":"
+            # output += ":"
+            output += "-"
     return output
 
 def GetTimestamp(input: Stamp, debug: bool=False) -> str:
@@ -43,8 +45,16 @@ def GetTimestamp(input: Stamp, debug: bool=False) -> str:
     return input.prefix + day + "T" + temps + ".txt"
 
 def parse_stamped_filename(filename: str, ext_with_dot: str, res_type: str, prefix: str="chute_d-", debug: bool = False) -> Stamp:
+
+    debug = True
+     
+    if debug is True:
+        print(" ... input", filename)
+        
     stem = filename # os.path.basename(filepath)
     day_temps = stem.split("T")
+   
+    
     if debug is True:
         print(" ... day_temps", day_temps)
     if len(day_temps) == 2:
@@ -54,7 +64,7 @@ def parse_stamped_filename(filename: str, ext_with_dot: str, res_type: str, pref
             print(" ... len 2 ok: day, temps", day, temps, "prefix:", prefix, prefix in day, "res_type:", res_type, res_type in temps)
         if res_type in temps:
             if debug is True:
-                print(" ... day, temps", day, temps, prefix in day, res_type in temps)
+                print(" ... day, temps", day, temps, prefix in day, res_type in temps, "ext_with_dot", ext_with_dot)
             if prefix in day and ext_with_dot in temps:
                 day = day.strip(prefix)
                 temps = temps.strip(ext_with_dot)
@@ -63,11 +73,13 @@ def parse_stamped_filename(filename: str, ext_with_dot: str, res_type: str, pref
                 temps_part = temps.split("-")
                 
                 if debug is True:
-                    print(" ... chute, day, temps", day_parts, temps_part)
+                    print(" ... chute, day, temps", day_parts, " <>", temps_part)
                 if len(day_parts) == 3 and len(temps_part) > 0:
                     # foundOne = True
                     
-                    temps_parts = temps_part[0].split(":")
+                    # TODO add var separator in time part
+                    # temps_parts = temps_part[0].split(":")
+                    temps_parts = temps_part
                     
                     output = Stamp(day_parts=day_parts, temps_parts=temps_parts, prefix=prefix)
                     if debug is True:
@@ -214,19 +226,43 @@ class File:
     extension: str
 
 def save_file(upload_folder: str, im_file: File):
+    print(" ... save_file 1")
     content=im_file.buffer
     filename=im_file.name
     folder_path = upload_folder
     file_path = os.path.join(folder_path, filename)
     try:
+        print(" ... save_file 2")
         with open(file_path, 'wb') as f:
+            print(" ... save_file 3")
             f.write(content.read())
     except Exception as err:
+        print(" ... save_file error")
         raise Exception("failed writing file: error={}".format(err))
 
-def _get_doc(request_headers: Headers, request_data: bytes, base64mode=False):
+    print(" ... save_file end")
     
-    """ returns the request image content """
+def save_file2(upload_folder: str, im_file: File):
+    print(" ... save_file 1")
+    content=im_file.buffer
+    filename=im_file.name
+    folder_path = upload_folder
+    file_path = os.path.join(folder_path, filename)
+    try:
+        print(" ... save_file 2")
+        with open(file_path, 'wb') as f:
+            print(" ... save_file 3")
+            f.write(content)
+    except Exception as err:
+        print(" ... save_file error")
+        raise Exception("failed writing file: error={}".format(err))
+
+    print(" ... save_file end")
+
+# before login we could send differnt type of content, now only application/json since we need to add user and password
+'''def _get_doc(request_headers: Headers, request_data: bytes, base64mode=False):
+    
+    # returns the request image content
     
     strInfo = "information"
     strIdentifier = "identifier"
@@ -278,36 +314,117 @@ def _get_doc(request_headers: Headers, request_data: bytes, base64mode=False):
     
     # return (dict_out, 200, content_file)
     return content_file
+'''
+
+def _get_doc(request_headers: Headers, request_data: bytes, base64mode=False):
+    
+    """ returns the request image content """
+    content_file = None
+
+    print(" ... _get_doc")
+    content_type = request_headers.get('Content-Type')
+    print("[INFO] documents content_type received: " + str(content_type))
+    if content_type != "application/json":
+        raise Exception("[ERROR] the input request has header of content type: {}".format(str(content_type)))
+
+    print(" ... _get_doc, check data")
+    if request_data is None:
+        raise Exception("[ERROR] the input request does not have any json data")
+
+    # print(" ... _get_doc, check type:", type(request_data))
+    # if isinstance(request_data, bytes) is False:
+    #     raise Exception("[ERROR] the input request data is not of type bytes: {}".format(type(request_data)))
+
+    # print(" ... _get_doc, load data")
+    # request_data = json.loads(request_data.decode('utf-8'))
+    
+    print(" ... _get_doc, check load data")
+    if isinstance(request_data, dict) is False:
+        raise Exception("[ERROR] the converted input request data is not of type dict: {}".format(type(request_data)))
+    
+    print(" ... _get_doc, check content")
+    if "username" not in request_data:
+        raise Exception("[ERROR] the input request data does not contain username")
+    if "password" not in request_data:
+        raise Exception("[ERROR] the input request data does not contain password")
+    if "data" not in request_data:
+        raise Exception("[ERROR] the input request data does not contain data")
+    request_data = request_data["data"]
+    
+    
+    request_data = request_data.encode("iso-8859-1") #  b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01@\x00\x00\x00\xf0\x08\x02\x00\x00\x00\xfeO*<\x00\x01\x00\x00I
+    # print(" ... typer", type(request_data), request_data)
+    print(" ... typer", type(request_data))
+    
+    # base64.b64decode(request_data['data'])
+    
+    nb_bytes = len(request_data) # request.data is of type "bytes"
+    if nb_bytes == 0:
+        raise Exception("[ERROR] cannot upload an empty content")
+
+
+    print(" ... request_data", type(request_data))
+
+    # if type(request_data) != bytes:
+    #     raise Exception("[ERROR] cannot upload an object wich is a non byte type object: {}".format(str(type(request_data))))
+
+    if base64mode is True:
+        base64_decoded = base64.b64decode(request_data)
+        nb_bytes64 = len(base64_decoded)
+        if nb_bytes64 == 0:
+            raise Exception("[ERROR] cannot upload an empty b64 content")
+        content_file = base64_decoded
+    else:
+        content_file = request_data
+    
+    return content_file
 
 def save_doc(request_content_length: int, request_content_type: str, 
              filenamestem: str, content_file, dstDir: str):
     # if status_code != 200:
     #     raise ValueError
     #     return jsonify(json_content), status_code
-    
+    print(" ... save_doc")
     if request_content_length == 0:
+        print(" ... save_doc, request_content_length 0")
         raise FileExistsError("[ERROR] empty binary message")
         # return {"information": "empty binary message"}, 400
 
-    if request_content_type == "application/octet-stream":
-        file_extension = "bin"
-    elif request_content_type in ["image/jpeg", "image/jpg"]:
-        file_extension = "jpeg"
-    elif request_content_type == "image/png":
-        file_extension = "png"
-    else:
-        raise FileExistsError("[ERROR] {} not handled".format(request_content_type))
-        # return {"details": "{} not handled".format(request_content_type)}, 400
+    # print(" ... save_doc, request_content_type", request_content_type)
+
+    file_extension = "png"
+
+    # before login auth
+    # if request_content_type == "application/octet-stream":
+    #     file_extension = "bin"
+    # elif request_content_type in ["image/jpeg", "image/jpg"]:
+    #     file_extension = "jpeg"
+    # elif request_content_type == "image/png":
+    #     file_extension = "png"
+    # else:
+    #     raise FileExistsError("[ERROR] {} not handled".format(request_content_type))
 
     # filename = stamp + "-depth." + file_extension
     filename = filenamestem + "." + file_extension
-    buffer = BytesIO(content_file) # (content)
+    print(" ... save_doc, filename", filename)
+    # try:
+    #     buffer = BytesIO(content_file) # (content)
+    # except Exception as err:
+    #     msgerr = "failed to convert {} to ByesIO".format(type(content_file))
+    #     print("[ERROR]", msgerr)
+    #     raise Exception(msgerr)
+    
+    buffer = content_file
+    
     file = File(filename, buffer, file_extension)
     try:
-        save_file(upload_folder=dstDir, im_file=file)
+        print(" ... save_doc: save to file")
+        save_file2(upload_folder=dstDir, im_file=file)
     except Exception as err:
-        raise FileExistsError("[ERROR] failed to save file: {}".format(err))
+        print(" ... save_doc: failed to save")
+        raise FileExistsError("[ERROR] save_doc: failed to save file: {}".format(err))
 
+    print(" ... save_doc done")
     # print(" ... filename", filename)
     # filename = secure_filename(filename)
     # print(" ... filename", filename)
@@ -326,13 +443,13 @@ def get_stamp_from_request_stamp_data_and_create_empty_file(textData: str, dstDi
     textData_parts = textData.split("T")
     if len(textData_parts) != 2:
         raise ValueError("get_stamp_from_request_stamp_data: request dat content of stamp filename: {} not have 2 parts".format(textData))
-    textData_parts[1] = textData_parts[1].replace("-", ":")
+    # textData_parts[1] = textData_parts[1].replace("-", ":")
     textData = textData_parts[0] + "T" + textData_parts[1]
 
     filename = os.path.join(dstDir, textData + ".txt")
     try:
         with open(filename, "w") as fout:
-            print("[INFO] creating simple stamp file ", filename)
+            print("[INFO] get_stamp_from_request_stamp_data_and_create_empty_file: creating simple stamp file ", filename)
     except Exception as err:
         msg = "[ERROR] could not create output file {} error={}".format(filename, err)
         print(msg)

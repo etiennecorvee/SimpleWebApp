@@ -111,7 +111,7 @@
         {
             // var USERNAME = '{{ USERNAME }}';
             // var PASSWORD = '{{ PASSWORD }}';
-            console.log(" ... here")
+            // console.log(" ... here")
             var urlHost = window.location.host
             var urlProtocol = window.location.protocol
             var urlRoot = urlProtocol + "//" + urlHost
@@ -125,7 +125,7 @@
                 type: 'GET',
                 success: function(res)
                 {
-                    console.log(" ... resultListProcessed success")
+                    // console.log(" ... resultListProcessed success")
 
                     async function deleteList(){
                         // with jquiery it works
@@ -140,7 +140,7 @@
                         //    selectList.remove(ii)
                         //}
                         var currlength2 = selectList.length
-                        console.log(" ... current length after deletion: " + currlength2)
+                        // console.log(" ... current length after deletion: " + currlength2)
                         return;
                       };
                     
@@ -148,11 +148,11 @@
                     {
                         await deleteList();
                         var currlength3 = selectList.length
-                        console.log(" ... current length before adding items: " + currlength3)
+                        // console.log(" ... current length before adding items: " + currlength3)
 
                         var text = res.responseText;
                         var responseList = res
-                        console.log(" ... GET2 response list: " + typeof(responseList) + " =>" + responseList)
+                        // console.log(" ... GET2 response list: " + typeof(responseList) + " =>" + responseList)
                         var responseList2 = responseList.split("\n");
                         // console.log(" ... GET2 response list2: " + typeof(responseList2) + " =>" + responseList2)
                         // document.getElementById("responseList").value = responseList.split("\n");
@@ -162,7 +162,7 @@
                             option.value = responseList2[i];
                             option.text = responseList2[i];
                             selectList.add(option);
-                            console.log(" ... GET2 add item: " + option.text)
+                            // console.log(" ... GET2 add item: " + option.text)
                         }
 
                         selectList.setAttribute('multiple', '')
