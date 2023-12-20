@@ -320,16 +320,17 @@ def save_file2(upload_folder: str, im_file: File):
     return content_file
 '''
 
-def _get_doc(request_headers: Headers, request_data: bytes, base64mode=False):
+# request_headers: Headers, 
+def _get_doc(request_data: bytes, base64mode=False):
     
     """ returns the request image content """
     content_file = None
 
-    print(" ... _get_doc")
-    content_type = request_headers.get('Content-Type')
-    print("[INFO] documents content_type received: " + str(content_type))
-    if content_type != "application/json":
-        raise Exception("[ERROR] the input request has header of content type: {}".format(str(content_type)))
+    print(" ... => _get_doc")
+    # content_type = request_headers.get('Content-Type')
+    # print("[INFO] documents content_type received: " + str(content_type))
+    # if content_type != "application/json":
+    #     raise Exception("[ERROR] the input request has header of content type: {}".format(str(content_type)))
 
     print(" ... _get_doc, check data")
     if request_data is None:

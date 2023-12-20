@@ -2,6 +2,7 @@ import os
 import time
 import json
 import argparse
+import requests
 from flask import Flask
 from flask import request, render_template
 from flask import redirect, url_for
@@ -11,12 +12,18 @@ import subprocess
 import pathlib
 import shutil
 import cv2
+from cryptography.fernet import Fernet
 from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _get_image_content_b64
 
-SendItToCloudServer in simul, copy it to ecovision
-remove all the debug print starting with ... and forced debug 
+# SendItToCloudServer in simul, copy it to ecovision
+# remove all the debug print starting with ... and forced debug
 
+# encrypt my json content that has usernma passxord and imaghes and that it
+# https://devqa.io/encrypt-decrypt-data-python/
+# https://stackoverflow.com/questions/68966390/how-to-encrypt-data-and-post-payload-as-form-data-to-flask-app-endpoint
+
+PORT=5001
 MOVE=False
 
 # remove the duplicated function (username and password) ?
@@ -122,6 +129,42 @@ try:
 except Exception as err:
     raise Exception(err)
 
+def load_key():
+    """
+    Loads the key named `secret.key` from the current directory.
+    """
+    try:
+        keyfile = "/etc/ecodata/secret.key"
+        if os.path.isfile(keyfile) is False:
+            raise FileExistsError("key file does not exist")
+        with open(keyfile, "rb") as fkey:
+            return fkey.read()
+    except Exception as err:
+        raise FileExistsError("key file was not found")
+
+def decrypt_request_data(request_data):
+    try:
+        key = load_key()
+    except Exception as err:
+        raise Exception("[ERROR] load key failed: {}".format(err))
+    
+    try:
+        f = Fernet(key)
+        decrypted_message = f.decrypt(request_data)
+    except Exception as err:
+        raise Exception("[ERROR] decryption failed: {}".format(err))
+    
+    jsondict = None
+    try:
+        # print(" ... decrypted_message", decrypted_message)
+        jsonstr = decrypted_message.decode()
+        # print(" ... json_str", type(jsonstr), jsonstr)
+        jsondict = json.loads(jsonstr)
+        # print(" ... jsondict", type(jsondict), jsondict)
+    except Exception as err:
+        raise Exception("[ERROR] convert to json dict failed: {}".format(err))
+
+    return jsondict
 
 @login_manager.user_loader
 def user_loader(email):
@@ -187,22 +230,35 @@ def login():
 
     return render_template('login.html')
 
-def check_user_pass():
+def check_user_pass(json_object: dict = None):
 
-    if request.is_json is False: 
-        return "bad input request", 400
-
-    if request.json is None:
-        return "bad input request", 400
+    if json_object is None:
+        if request.is_json is False: 
+            raise Exception("[ERROR]bad input request, request isjon is False")
         
-    if 'username' not in request.json:
-        return "wrong input content", 400
-    
-    if 'password' not in request.json:
-        return "wrong input content", 400
+        if request.json is None:
+            raise Exception("[ERROR]bad input request, request json is None")
+            
+        if 'username' not in request.json:
+            raise Exception("[ERROR]bad input request, username not present")
         
-    username = request.json.get('username')
-    password = request.json.get('password')
+        if 'password' not in request.json:
+            raise Exception("[ERROR]bad input request, password not present")
+        
+        username = request.json.get('username')
+        password = request.json.get('password')
+    else:
+        if json_object is None:
+            raise Exception("[ERROR]bad input request, input json object is None")
+        
+        if 'username' not in json_object:
+            raise Exception("[ERROR]bad input request, usernamle is not there")
+        
+        if 'password' not in json_object:
+            raise Exception("[ERROR]bad input request, password is not there")
+        
+        username = json_object['username']
+        password = json_object['password']
     
     # if username in users:
     if username == app.config['USERNAME']:
@@ -217,6 +273,7 @@ def check_user_pass():
             if success is True:
                 return None
 
+    print("[ERROR]unauthorized user")
     return "unauthorized user", 401
 
 @app.route('/version', methods = ['GET'])
@@ -432,36 +489,30 @@ def process_v(colour_filename: str):
 @app.route('/stamp', methods = ['POST'])
 def stamp():
     print(" .................. STAMP ................")
-    ret = check_user_pass()
+    try:
+        jsondict = decrypt_request_data(request_data=request.data)
+        ret = check_user_pass(jsondict)
+    except Exception as err:
+        print("[ERROR] authorisation not granted failed: {}".format(err))
+        return "authorisation not granted failed", 400
+    
     if ret is not None:
-        return ret
+        return ret # forbidden hacker
     return stamp_v()
 
 @app.route("/stamp_v", methods=["POST"])
 @flask_login.login_required
 def stamp_v():
-    content_type = request.headers.get('Content-Type')
-    
-    # nb_bytes = len(request.data) # request.data is of type "bytes"
-    # textData = request.data.decode("utf-8")
-    if request.json is None:
-        return {"details": "stamp content not json"}, 400
-    textData = request.json
-    # print("[INFO]/stamp: received stamp: ", content_type, nb_bytes, request.data, " => '{}'".format(textData))
-
-    print("[INFO]/stamp: received stamp: ", content_type, request.data, " => '{}' ({})".format(textData, type(textData)))
-    if isinstance(textData, dict) is False:
+    jsondict = decrypt_request_data(request_data=request.data)
+    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => '{}' ({})".format(jsondict, type(jsondict)))
+    if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400
-    if "stamp" not in textData:
+    if "stamp" not in jsondict:
         return {"details": "received content does not contain stamp"}, 400
 
-    # textData = json.loads(textData)
-
-    
     try:
         # textData = get_stamp_from_request_stamp_data_and_create_empty_file(textData=textData, dstDir=app.config['UPLOAD'])
-
-        filename = os.path.join(app.config['UPLOAD'], textData["stamp"] + ".txt")
+        filename = os.path.join(app.config['UPLOAD'], jsondict["stamp"] + ".txt")
         try:
             with open(filename, "w") as fout:
                 print("[INFO] stamp_v: creating simple stamp file ", filename)
@@ -478,18 +529,31 @@ def stamp_v():
 
 @app.route('/colour/<colourstem>', methods = ['POST'])
 def colour(colourstem: str):
-    ret = check_user_pass()
+    try:
+        jsondict = decrypt_request_data(request_data=request.data)
+        ret = check_user_pass(jsondict)
+    except Exception as err:
+        print("[ERROR] authorisation not granted failed: {}".format(err))
+        return "authorisation not granted failed", 400
+    
     if ret is not None:
-        return ret
+        return ret # forbidden hacker
     return colour_v(colourstem=colourstem)
 
 @app.route("/colour_v/<colourstem>", methods=["POST"])
 @flask_login.login_required
 def colour_v(colourstem: str):
+    
+    jsondict = decrypt_request_data(request_data=request.data)
+    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => '{}' ({})".format(jsondict, type(jsondict)))
+    if isinstance(jsondict, dict) is False:
+        return {"details": "received content is not a json dict"}, 400
+
     try:
         # before login
         # (json_content, status_code, content_file) = _get_doc(request_headers=request.headers, request_data=request.data, base64mode=False)
-        content_file = _get_doc(request_headers=request.headers, request_data=request.json, base64mode=False)
+        # content_file = _get_doc(request_headers=request.headers, request_data=request.json, base64mode=False)
+        content_file = _get_doc(request_data=jsondict, base64mode=False)
     except Exception as err:
         return {"details": "/colour/{} get doc image failed: {}".format(colourstem, err)}, 400
         # return (dict_out, 400, content_file)
@@ -504,20 +568,30 @@ def colour_v(colourstem: str):
 
 @app.route('/depth/<depthstem>', methods = ['POST'])
 def depth(depthstem: str):
-    print(" ... depth")
-    ret = check_user_pass()
+    
+    try:
+        jsondict = decrypt_request_data(request_data=request.data)
+        ret = check_user_pass(jsondict)
+    except Exception as err:
+        print("[ERROR] authorisation not granted failed: {}".format(err))
+        return "authorisation not granted failed", 400
+    
     if ret is not None:
-        return ret
-    print(" ... call depth_v")
+        return ret # forbidden hacker
     return depth_v(depthstem=depthstem)
 
 @app.route("/depth_v/<depthstem>", methods=["POST"])
 @flask_login.login_required
 def depth_v(depthstem: str):
     
+    jsondict = decrypt_request_data(request_data=request.data)
+    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => '{}' ({})".format(jsondict, type(jsondict)))
+    if isinstance(jsondict, dict) is False:
+        return {"details": "received content is not a json dict"}, 400
+    
     try:
-        print(" ... depth_v get_doc")
-        content_file = _get_doc(request_headers=request.headers, request_data=request.json, base64mode=False)
+        print(" ... depth_v get_doc from json dict")
+        content_file = _get_doc(request_data=jsondict, base64mode=False)
     except Exception as err:
         return {"details": "/depth/{} get doc image failed: {}".format(depthstem, err)}, 400
         
@@ -767,4 +841,4 @@ if __name__ == "__main__":
     app.config['USERNAME'] = args.username
     app.config['PASSWORD'] = args.password
     
-    app.run(host='0.0.0.0', port=5001)
+    app.run(host='0.0.0.0', port=PORT)
