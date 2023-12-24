@@ -40,6 +40,10 @@ def GetTempsString(input: Stamp) -> str:
 def GetTimestamp(input: Stamp, debug: bool=False) -> str:
     day = GetDayString(input)
     temps = GetTempsString(input)
+    
+    print(" ... ... GetTimestamp({}) => day={}".format(input, day))
+    print(" ... ... GetTimestamp({}) => temps={}".format(input, temps))
+    
     if debug is True:
         print("[DEBUG] GetTimestamp from {} -> {} + {}".format(input, day, temps))
     return input.prefix + day + "T" + temps + ".txt"
