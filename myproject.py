@@ -421,6 +421,7 @@ def nocolour_v(colour_filename: str):
         return {"details": errMsg}, 400
     
     try:
+        print(" ... ... /nocolour_v, move_files_and_update_last")
         move_files_and_update_last(MOVE=MOVE, info="nocolour", nbFiles=2, fourfiles=fourfiles,
             srcDir=app.config['UPLOAD'], dstDir=app.config['PROCESSED'], lastDir=app.config['LAST'])
     except Exception as err:
@@ -503,7 +504,7 @@ def process_v(colour_filename: str):
             move_files_and_update_last(MOVE=MOVE, info="processed", nbFiles=4, fourfiles=fourfiles,
                 srcDir=app.config['UPLOAD'], dstDir=app.config['PROCESSED'], lastDir=app.config['LAST'], debug=True)
         except Exception as err:
-            msgErr = "[ERROR] /process/{} mmdetection ok but moving file update failed".format(colour_filename, err)
+            msgErr = "[ERROR] /process/{} mmdetection ok but moving file update failed wither err: {}".format(colour_filename, err)
             print(msgErr)
             return {"details": msgErr}, 400
         
@@ -529,7 +530,7 @@ def stamp():
 @flask_login.login_required
 def stamp_v():
     jsondict = decrypt_request_data(request_data=request.data)
-    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => '{}' ({})".format(jsondict, type(jsondict)))
+    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => ({})".format(type(jsondict)))
     if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400
     if "stamp" not in jsondict:
@@ -570,7 +571,7 @@ def colour(colourstem: str):
 def colour_v(colourstem: str):
     
     jsondict = decrypt_request_data(request_data=request.data)
-    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => '{}' ({})".format(jsondict, type(jsondict)))
+    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => ({})".format(type(jsondict)))
     if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400
 
@@ -610,7 +611,7 @@ def depth(depthstem: str):
 def depth_v(depthstem: str):
     
     jsondict = decrypt_request_data(request_data=request.data)
-    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => '{}' ({})".format(jsondict, type(jsondict)))
+    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => ({})".format(type(jsondict)))
     if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400
     
