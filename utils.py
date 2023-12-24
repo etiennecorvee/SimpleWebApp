@@ -39,7 +39,8 @@ def GetTempsString(input: Stamp) -> str:
 
 def GetTimestamp(input: Stamp, debug: bool=False) -> str:
     day = GetDayString(input)
-    temps = GetTempsString(input)
+    # temps = GetTempsString(input) with -
+    temps = input.temps_parts[0] # with :
     
     print(" ... ... GetTimestamp({}) => day={}".format(input, day))
     print(" ... ... GetTimestamp({}) => temps={}".format(input, temps))
