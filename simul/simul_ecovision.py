@@ -5,6 +5,15 @@ import json
 import base64
 from cryptography.fernet import Fernet
 
+# URL = "https://127.0.0.1:5001"
+
+URL = "https://37.187.37.203:5001"
+
+response_version = requests.get(URL, verify ='/etc/ecodata/ecovision.crt')
+print(response_version)
+exit(1)
+
+
 # without login authentification: ok
 def SendItToCloudServer_no_login(url_address: str, timeout: int, 
                         stamp_filename: str, 
@@ -275,19 +284,19 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
             raise FileExistsError("SendItToCloudServer failed nocolour request error={}".format(err))
 
 
-## SendItToCloudServer(url_address="http://127.0.0.1:5001", timeout=10,
+## SendItToCloudServer(url_address=URL, timeout=10,
 ##                     stamp_filename="/home/ubuntu/EcoVision/ecolog/chute_d-2023-11-01T13:04:39.014000.txt", # this does not have to exist
 ##                     # colour=None, # "/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
 ##                     colour_filename="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
 ##                     depth_filename="/home/ubuntu/SimpleWebApp/uploads/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")
 
-# SendItToCloudServer(url_address="http://127.0.0.1:5001", timeout=10,
+# SendItToCloudServer(url_address=URL, timeout=10,
 #                     stamp_filename="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-01T13:04:39.014000.txt", # this does not have to exist
 #                     colour_filename="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
 #                     depth_filename="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")
 
-SendItToCloudServer(USERNAME="user", PASSWORD="pass",
-                    url_address="http://127.0.0.1:5001", timeout=10,
+SendItToCloudServer(USERNAME="usereco", PASSWORD="routoutaille",
+                    url_address=URL, timeout=10,
                     stamp="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-19T21-54-14.463000.txt", # this does not have to exist
                     colour="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-19T21-54-14.463000-nbp2-colour.png",
                     depth="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-19T21-54-14.463000-nbp2-depth.png")
