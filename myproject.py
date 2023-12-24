@@ -537,6 +537,7 @@ def stamp_v():
         return {"details": "received content does not contain stamp"}, 400
 
     try:
+        print(" ... /stamp_v decoded stamp: {}".format(jsondict["stamp"]))
         # textData = get_stamp_from_request_stamp_data_and_create_empty_file(textData=textData, dstDir=app.config['UPLOAD'])
         filename = os.path.join(app.config['UPLOAD'], jsondict["stamp"] + ".txt")
         try:
