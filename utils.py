@@ -136,7 +136,7 @@ def get_4_filenames_from_colour_name(colour_filename: str, debug: bool=False) ->
     try:
         if debug is True:
             print("[DEBUG]get_4_filenames_from_colour_name '{}', stamp: {}".format(colour_filename, stamp_filename))
-        parse_stamped_filename(filename=stamp_filename, ext_with_dot=".txt", res_type="", debug=False)
+        # parse_stamped_filename(filename=stamp_filename, ext_with_dot=".txt", res_type="", debug=False)
     except Exception as warn:
         msg = "[ERROR]get_4_filenames_from_colour_name: {}".format(warn)
         if debug is True:
