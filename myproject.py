@@ -512,9 +512,12 @@ def process_v(colour_filename: str):
     
     return {"details": "failure"}, 400
 
-@app.route('/stamp', methods = ['POST'])
-def stamp():
-    print(" .................. STAMP ................")
+@app.route('/stamp/<stampstem>', methods = ['POST'])
+def stamp(stampstem: str):
+    print(" .................. STAMP ................", stampstem)
+    
+    # I can compare deltaz clock between stamp in json data and the one in endpoint
+    
     try:
         jsondict = decrypt_request_data(request_data=request.data)
         ret = check_user_pass(jsondict)
@@ -524,11 +527,11 @@ def stamp():
     
     if ret is not None:
         return ret # forbidden hacker
-    return stamp_v()
+    return stamp_v(colourstem=colourstem)
 
-@app.route("/stamp_v", methods=["POST"])
+@app.route("/stamp_v/<stampstem>", methods=["POST"])
 @flask_login.login_required
-def stamp_v():
+def stamp_v(stampstem: str):
     jsondict = decrypt_request_data(request_data=request.data)
     print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => ({})".format(type(jsondict)))
     if isinstance(jsondict, dict) is False:
@@ -539,7 +542,8 @@ def stamp_v():
     try:
         print(" ... /stamp_v decoded stamp: {}".format(jsondict["stamp"]))
         # textData = get_stamp_from_request_stamp_data_and_create_empty_file(textData=textData, dstDir=app.config['UPLOAD'])
-        filename = os.path.join(app.config['UPLOAD'], jsondict["stamp"] + ".txt")
+        # filename = os.path.join(app.config['UPLOAD'], jsondict["stamp"] + ".txt")
+        filename = os.path.join(app.config['UPLOAD'], stampstem + ".txt")
         try:
             with open(filename, "w") as fout:
                 print("[INFO] stamp_v: creating simple stamp file ", filename)
