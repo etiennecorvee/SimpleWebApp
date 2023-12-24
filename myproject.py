@@ -527,7 +527,7 @@ def stamp(stampstem: str):
     
     if ret is not None:
         return ret # forbidden hacker
-    return stamp_v(colourstem=colourstem)
+    return stamp_v(stampstem=stampstem)
 
 @app.route("/stamp_v/<stampstem>", methods=["POST"])
 @flask_login.login_required
