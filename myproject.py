@@ -572,7 +572,7 @@ def colour(colourstem: str):
 def colour_v(colourstem: str):
     
     jsondict = decrypt_request_data(request_data=request.data)
-    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => ({})".format(type(jsondict)))
+    print("[INFO]/colour_v: received stamp: {}".format(colourstem))
     if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400
 
@@ -612,7 +612,7 @@ def depth(depthstem: str):
 def depth_v(depthstem: str):
     
     jsondict = decrypt_request_data(request_data=request.data)
-    print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => ({})".format(type(jsondict)))
+    print("[INFO]/colour_v: received stamp: {}".format(depthstem))
     if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400
     
