@@ -9,9 +9,8 @@ from cryptography.fernet import Fernet
 
 URL = "https://37.187.37.203:5001"
 
-response_version = requests.get(URL, verify ='/etc/ecodata/ecovision.crt')
+response_version = requests.get(URL, verify ='/etc/ecodata/ecovision2.crt')
 print(response_version)
-exit(1)
 
 
 # without login authentification: ok
@@ -215,6 +214,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                         url=url_address + entry[1],
                         headers={"Content-type": entry[2]},
                         data=encrypted_message,
+                        verify ='/etc/ecodata/ecovision2.crt',
                         timeout=timeout,
                     )
                     if result_upload.status_code != 200:
@@ -244,6 +244,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                             url = _url,
                             headers={"Content-type": entry[2]},
                             data=encrypted_message,
+                            verify ='/etc/ecodata/ecovision2.crt',
                             timeout=timeout,
                         )
                         print("[INFO]result upload status: {}".format(result_upload.status_code))
@@ -263,6 +264,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                 # url=url_address + "/process/" + os.path.basename(stamp).strip(".txt"),
                 url=url,
                 json={"username": USERNAME, "password": PASSWORD},
+                verify ='/etc/ecodata/ecovision2.crt',
                 timeout=timeout,
             )
             print("result post process colour: {}".format(result_process.status_code))
@@ -276,6 +278,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
             result_process = requests.post(
                 url=url_address + "/nocolour/" + os.path.basename(stamp),
                 json={"username": USERNAME, "password": PASSWORD},
+                verify ='/etc/ecodata/ecovision2.crt',
                 timeout=timeout,
             )
             if result_process.status_code != 200:
