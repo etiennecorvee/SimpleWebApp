@@ -352,9 +352,19 @@ def page():
 
 @app.route('/alive', methods = ['POST'])
 def alive():
-    ret = check_user_pass()
+    # ret = check_user_pass()
+    # if ret is not None:
+    #     return ret
+    # return alive_from_v()
+    try:
+        jsondict = decrypt_request_data(request_data=request.data)
+        ret = check_user_pass(jsondict)
+    except Exception as err:
+        print("[ERROR] authorisation not granted failed: {}".format(err))
+        return "authorisation not granted failed", 400
+    
     if ret is not None:
-        return ret
+        return ret # forbidden hacker
     return alive_from_v()
 
 @app.route("/alive_v", methods=["POST"])

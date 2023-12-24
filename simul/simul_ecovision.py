@@ -9,8 +9,13 @@ from cryptography.fernet import Fernet
 
 URL = "https://37.187.37.203:5001"
 
-response_version = requests.get(URL, verify ='/etc/ecodata/ecovision2.crt')
-print(response_version)
+# response = requests.get(URL+"/version", verify ='/etc/ecodata/ecovision2.crt')
+# print(response)
+# exit(1)
+
+# response = requests.get(URL, verify ='/etc/ecodata/ecovision2.crt')
+# print(response)
+# exit(1)
 
 
 # without login authentification: ok
