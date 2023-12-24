@@ -7,7 +7,7 @@ User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/SimpleWebApp
 Environment="PATH=/home/ubuntu/SimpleWebApp/venv/bin"
-ExecStart=bash -c "export USERNAME=$(/usr/bin/cat /etc/ecodata/username.txt) && export PASSWORD=$(/usr/bin/cat /etc/ecodata/password.txt) && /home/ubuntu/SimpleWebApp/venv/bin/gunicorn --workers 1 --bind 0.0.0.0:5001 wsgi:app"
+ExecStart=bash -c "export USERNAME=$(/usr/bin/cat /etc/ecodata/username.txt) && export PASSWORD=$(/usr/bin/cat /etc/ecodata/password.txt) && /home/ubuntu/SimpleWebApp/venv/bin/gunicorn --workers 1 --certfile=/etc/ecodata/ecovision.crt --keyfile=/etc/ecodata/ecovision.key --bind 0.0.0.0:5001 wsgi:app"
 
 [Install]
 WantedBy=multi-user.target

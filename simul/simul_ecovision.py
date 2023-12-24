@@ -205,8 +205,6 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                     result_upload = requests.post(
                         url=url_address + entry[1],
                         headers={"Content-type": entry[2]},
-                        # data={"stamp": os.path.basename(stamp).strip(".txt")},
-                        # json={"username": USERNAME, "password": PASSWORD, "stamp": os.path.basename(stamp).strip(".txt")},
                         data=encrypted_message,
                         timeout=timeout,
                     )
@@ -218,34 +216,11 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                     print("[INFO] ... send image to: ", _url)
                     # "stream": (open(input_filename, "rb").read()).decode("iso-8859-1"),
                     with open(entry[0], mode="rb") as f:
-                        
-                        #  .... f.read() - bytes -  b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01@\x00\x00\x00\xf0\x08\x02\x00\x00\x00\xfeO*<\x00\x00K\xf6IDATx\x9c\xed\xbd{\xb0\x9eUu?\xbe\x9fs\x92p\x93\x8b:j\xedT[\xc7\xff:
-                        #                            '\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x01@\x00\x00\x00ð\x08\x02\x00\x00\x00þO*<\x00\x00KöIDATx\x9cí½{°\x9eUu?¾\x9fs\x92p\x93\x8b:jíT[Çÿ:µ\x1d)\x83\x15\x03\x01Ê%\x92»Ñ\x04\t·\x18Í$\x81à7øë0AnB\x90AG\x98©\x918\nÄ6\x02\x86j¸\x04(\x01¹\x04\x82U\x14Æéß\x9dqZ!\x88\xad\x06\x8aCs;ïþý±{V×»n{íý<ï
-                        # fileContent = (f.read()).decode("iso-8859-1") # receives str in received request afet posting this data
-                        
                         fileContent = f.read()
-                        
                         fileContent = fileContent.decode("iso-8859-1")
-                        # print(" ... fileContent", type(fileContent), fileContent) # jiberish, messed up terminal
-                        
-                        # ... fileContent <class 'bytes'> b'iVBORw0KGgoAAAANSUhEUgAAAUAAAADwCAIAAAD+Tyo8AABL9klEQVR4nO29e7CeVXU/vp9zknCTizpq7VRbx/86tR0pgxUDAcolkrvRBAm3GM0kgeA3+OswQW5CkEFHmKmROArENgKGargEKAG5BIJVFMbp351xWiGIrQaKQ3M
-                        # fileContent = base64.b64encode(fileContent)
-                        # print(" ... fileContent", type(fileContent), fileContent)
-                        
-                        # print(" ... fileContent", type(fileContent)) # str
-                        
-                        # fileContent = f.read() # bytes
-                        # print(" ... type ", type(fileContent))
-                        # test = fileContent.encode('utf-8')
-                        # print(" ... type ", type(test))
-                        # fileContent = base64.encodebytes(fileContent)
-                        # fileContent = base64.b64encode(fileContent)
-                        # print(" ... typeb64? ", type(fileContent)) # bytes
-                        
                         jsondata={"username": USERNAME, "password": PASSWORD, "data": fileContent}
                         jsonstr = json.dumps(jsondata)  # str
                         jsonbytes = jsonstr.encode() # bytes
-                        # print(" ... jsondata", jsondata)
                         
                         try:
                             key = load_key()
@@ -259,23 +234,16 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                         result_upload = requests.post(
                             url = _url,
                             headers={"Content-type": entry[2]},
-                            # data=fileContent, # before login
-                            # json={"username": USERNAME, "password": PASSWORD, "data": fileContent},
                             data=encrypted_message,
                             timeout=timeout,
                         )
                         print("[INFO]result upload status: {}".format(result_upload.status_code))
-                        # print("result upload content: {}".format(result_upload1.content))
-                        # json_data_res = json.loads(result_upload1.content.decode("utf-8"))
                 
                 if result_upload.status_code != 200:
                     print("result upload image status: {} {}".format(result_upload.status_code, result_upload.content))
-                    # raise Exception("SendItToCloudServer request failed for '{}': error={}".format(entry, err))
                     raise Exception("SendItToCloudServer request failed for '{}': error=?".format(entry))
                 
             except Exception as err:
-                # print(" ... err", err)
-                # raise FileExistsError("SendItToCloudServer failed sending {} error={}".format(entry, err))
                 raise FileExistsError("SendItToCloudServer failed sending {} error=?".format(entry))
 
     if colour is not None:

@@ -16,12 +16,27 @@ from cryptography.fernet import Fernet
 from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _get_image_content_b64
 
+# export USERNAME=$(/usr/bin/cat /etc/ecodata/username.txt) && export PASSWORD=$(/usr/bin/cat /etc/ecodata/password.txt) && /home/ubuntu/SimpleWebApp/venv/bin/gunicorn --workers 1 --certfile=/etc/ecodata/ecovision.crt --keyfile=/etc/ecodata/ecovision.key --bind 0.0.0.0:5001 wsgi:app
+
+# openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout ecovision.key -out ecovision.crt
+# see vi /etc/ecodata/note.txt
+# sudo vi /etc/ecodata/note.txt
+# sudo mv ecovision.* /etc/ecodata/
+
+
+
+
+
 # SendItToCloudServer in simul, copy it to ecovision
 # remove all the debug print starting with ... and forced debug
 
 # encrypt my json content that has usernma passxord and imaghes and that it
 # https://devqa.io/encrypt-decrypt-data-python/
 # https://stackoverflow.com/questions/68966390/how-to-encrypt-data-and-post-payload-as-form-data-to-flask-app-endpoint
+
+# https gunicorn 
+# https://stackoverflow.com/questions/7406805/running-gunicorn-on-https
+# $ gunicorn --certfile=ecovision.crt --keyfile=ecovision.key --bind 0.0.0.0:443 test:app
 
 PORT=5001
 MOVE=False
