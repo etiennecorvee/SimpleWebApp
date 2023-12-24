@@ -186,8 +186,7 @@ def login():
 
 def check_user_pass():
 
-    if request.is_json is False:
-        print(" ... check_user_pass ... , request.is_json KO reyurn 400", request.is_json)
+    if request.is_json is False: 
         return "bad input request", 400
 
     if request.json is None:
@@ -419,6 +418,7 @@ def process_v(colour_filename: str):
 
 @app.route('/stamp', methods = ['POST'])
 def stamp():
+    print(" .................. STAMP ................")
     ret = check_user_pass()
     if ret is not None:
         return ret
@@ -428,12 +428,35 @@ def stamp():
 @flask_login.login_required
 def stamp_v():
     content_type = request.headers.get('Content-Type')
-    nb_bytes = len(request.data) # request.data is of type "bytes"
-    textData = request.data.decode("utf-8")
-    print("[INFO]/stamp: received stamp: ", content_type, nb_bytes, request.data, " => '{}'".format(textData))
+    
+    # nb_bytes = len(request.data) # request.data is of type "bytes"
+    # textData = request.data.decode("utf-8")
+    if request.json is None:
+        return {"details": "stamp content not json"}, 400
+    textData = request.json
+    # print("[INFO]/stamp: received stamp: ", content_type, nb_bytes, request.data, " => '{}'".format(textData))
+
+    print("[INFO]/stamp: received stamp: ", content_type, request.data, " => '{}' ({})".format(textData, type(textData)))
+    if isinstance(textData, dict) is False:
+        return {"details": "received content is not a json dict"}, 400
+    if "stamp" not in textData:
+        return {"details": "received content does not contain stamp"}, 400
+
+    # textData = json.loads(textData)
+
     
     try:
-        textData = get_stamp_from_request_stamp_data_and_create_empty_file(textData=textData, dstDir=app.config['UPLOAD'])
+        # textData = get_stamp_from_request_stamp_data_and_create_empty_file(textData=textData, dstDir=app.config['UPLOAD'])
+
+        filename = os.path.join(app.config['UPLOAD'], textData["stamp"] + ".txt")
+        try:
+            with open(filename, "w") as fout:
+                print("[INFO] creating simple stamp file ", filename)
+        except Exception as err:
+            msg = "[ERROR] could not create output file {} error={}".format(filename, err)
+            print(msg)
+            return {"details": msg}, 400
+
     except Exception as err:
         errMsg = "[ERROR]/stamp failed get_stamp_from_request_stamp_data: {}".format(err)
         print(errMsg)
