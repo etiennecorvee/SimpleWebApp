@@ -402,11 +402,15 @@ def alive_from_v(stamp: str):
         if len(listfilenames) != 1:
             return {"details": "failed to delete all but last/most recent file"}, 500
     
+    # filename = os.path.join(app.config['ALIVE'], time.strftime("%Y-%m-%dT%H-%M-%S") + ".txt")
+    filename = os.path.join(app.config['ALIVE'], 
+                            time.strftime("%Y-%m-%dT%H-%M-%S") + "--STAMPED--" + stamp + ".txt")
     if len(listfilenames) == 0:
-        filename = os.path.join(app.config['ALIVE'], time.strftime("%Y-%m-%dT%H-%M-%S") + ".txt")
+        
         logprint(debug, "ALIVE: creating unique file: {}".format(filename))
         with open(filename, "w") as fout:
-            fout.write(stamp)
+            # fout.write(stamp)
+            fout.write(filename)
     elif len(listfilenames) == 1:
         # replace
         filepath = os.path.join(app.config['ALIVE'], listfilenames[0])
@@ -414,10 +418,10 @@ def alive_from_v(stamp: str):
         os.remove(filepath)
         if os.path.isfile(filepath) is True:
             return {"details": "failed to replace a file"}, 500
-        filename = os.path.join(app.config['ALIVE'], time.strftime("%Y-%m-%dT%H-%M-%S") + ".txt")
         logprint(debug, "ALIVE: replacement file: {}".format(filename))
         with open(filename, "w") as fout:
-            fout.write(stamp)
+            # fout.write(stamp)
+            fout.write(filename)
     else:
         return {"details": "alive: too many files present"}, 500
     
@@ -426,6 +430,8 @@ def alive_from_v(stamp: str):
     
     # TODO 1
     # print delta detlat rtimestamp
+    
+    # logprint(True, " ... ALIVE: {}".format(os.listdir(app.config['ALIVE'])))
 
     return {"details": "ok your alive"}, 200 
 
@@ -437,7 +443,13 @@ def last_alive_v():
         return "EMPTY"
     listfilenames = sorted(listfilenames)
     lastFilename = listfilenames[len(listfilenames)-1]
-    return "nb=" + str(len(listfilenames)) + "/last=" + lastFilename
+    
+    # output = "nb=" + str(len(listfilenames)) + "/last=" + lastFilename
+    output = "lastalive=" + lastFilename + "(" + str(len(listfilenames)) + ")"
+    
+    # logprint(True, " ... ALIVE_V: {}".format(output))
+    
+    return output
 
 @app.route('/nocolour', methods = ['POST'])
 def nocolour():
