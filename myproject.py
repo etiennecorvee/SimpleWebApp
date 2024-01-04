@@ -43,13 +43,7 @@ MOVE=False
 
 # remove the duplicated function (username and password) ?
 
-# TODO 1
-    # create filename with this time stmap
-    # time.strftime("%Y-%m-%dT%H-%M-%S")
-    
-    # print delta detlat rtimestamp
-    
-    # here
+
 
 
 
@@ -143,6 +137,10 @@ try:
                          "outputs"])
 except Exception as err:
     raise Exception(err)
+
+def logprint(debug: bool, msg: str):
+    if debug is True:
+        print("[DEBUG]{}".format(msg))
 
 def load_key():
     """
@@ -363,13 +361,17 @@ def alive():
         print("[ERROR] authorisation not granted failed: {}".format(err))
         return "authorisation not granted failed", 400
     
+    # print(" ... ALIVE: jsondict: {}".format(jsondict))
+    if 'stamp' not in jsondict:
+        return "alive endpoint did not receive json contaiing stamp field", 404
+    
     if ret is not None:
         return ret # forbidden hacker
-    return alive_from_v()
+    return alive_from_v(stamp=jsondict['stamp'])
 
 @app.route("/alive_v", methods=["POST"])
 @flask_login.login_required
-def alive_from_v():
+def alive_from_v(stamp: str):
     
     # for files =  list files in app.config['ALIVE']
     # if one or zero file: ok add one more
@@ -381,14 +383,17 @@ def alive_from_v():
     # os.stat(path).st_birthtime
         
     listfilenames = os.listdir(app.config['ALIVE'])
+    debug = False
+    logprint(debug, "ALIVE: listfilenames: {}".format(listfilenames))
     if len(listfilenames) > 1:
         listfilenames = sorted(listfilenames)
-        lastFilename = listfilenames[len(listfilenames)-1]
+        # lastFilename = listfilenames[len(listfilenames)-1]
         for index in range(len(listfilenames)-1):
             filename = listfilenames[index]
             filepath = os.path.join(app.config['ALIVE'], filename)
             if os.path.isfile(filepath) is False:
                 return {"details": "failed to find a file"}, 500
+            logprint(debug, "ALIVE: delete {}".format(filepath))
             os.remove(filepath)
             if os.path.isfile(filepath) is True:
                 return {"details": "failed to delete a file"}, 500
@@ -397,11 +402,42 @@ def alive_from_v():
         if len(listfilenames) != 1:
             return {"details": "failed to delete all but last/most recent file"}, 500
     
+    if len(listfilenames) == 0:
+        filename = os.path.join(app.config['ALIVE'], time.strftime("%Y-%m-%dT%H-%M-%S") + ".txt")
+        logprint(debug, "ALIVE: creating unique file: {}".format(filename))
+        with open(filename, "w") as fout:
+            fout.write(stamp)
+    elif len(listfilenames) == 1:
+        # replace
+        filepath = os.path.join(app.config['ALIVE'], listfilenames[0])
+        logprint(debug, "ALIVE: replacing unique file: {}".format(filepath))
+        os.remove(filepath)
+        if os.path.isfile(filepath) is True:
+            return {"details": "failed to replace a file"}, 500
+        filename = os.path.join(app.config['ALIVE'], time.strftime("%Y-%m-%dT%H-%M-%S") + ".txt")
+        logprint(debug, "ALIVE: replacement file: {}".format(filename))
+        with open(filename, "w") as fout:
+            fout.write(stamp)
+    else:
+        return {"details": "alive: too many files present"}, 500
     
-    # TODO 1    
-
+    if len(listfilenames) != 1:
+        return {"details": "alive: only one file should be present"}, 500
+    
+    # TODO 1
+    # print delta detlat rtimestamp
 
     return {"details": "ok your alive"}, 200 
+
+@app.route("/last_alive_v", methods=["GET"])
+@flask_login.login_required
+def last_alive_v():
+    listfilenames = os.listdir(app.config['ALIVE'])
+    if len(listfilenames) == 0:
+        return "EMPTY"
+    listfilenames = sorted(listfilenames)
+    lastFilename = listfilenames[len(listfilenames)-1]
+    return "nb=" + str(len(listfilenames)) + "/last=" + lastFilename
 
 @app.route('/nocolour', methods = ['POST'])
 def nocolour():
