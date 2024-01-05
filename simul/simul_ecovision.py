@@ -5,9 +5,9 @@ import json
 import base64
 from cryptography.fernet import Fernet
 
-# URL = "https://127.0.0.1:5001"
+URL = "https://127.0.0.1:5001"
 
-URL = "https://37.187.37.203:5001"
+#URL = "https://37.187.37.203:5001"
 
 # response = requests.get(URL+"/version", verify ='/etc/ecodata/ecovision2.crt')
 # print(response)
@@ -74,6 +74,7 @@ def SendItToCloudServer_no_login(url_address: str, timeout: int,
         except Exception as err:
             raise FileExistsError("SendItToCloudServer failed process error={}".format(err))
 
+# http case
 def SendItToCloudServer_with_login_bu_not_ecrypted(USERNAME: str, PASSWORD: str, url_address: str, timeout: int, stamp: str, depth: str, colour: str=None):
 
     stamp = stamp.replace(":", "-") # converted to % when receved by webapp
@@ -190,9 +191,10 @@ def load_key():
     except Exception as err:
         raise FileExistsError("key file was not found")
 
-def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout: int, stamp: str, depth: str, colour: str=None):
+# https case - must be same code as in ecovision
+def SendItToCloudServer(USERNAME: str, PASSWORD: str, CERTIFICATE: str, url_address: str, timeout: int, stamp: str, depth: str, colour: str=None):
 
-    stamp = stamp.replace(":", "-") # converted to % when receved by webapp
+    # stamp = stamp.replace(":", "-") # converted to % when receved by webapp
     
     entries = [(stamp, "/stamp", "application/octet-stream"), (depth, "/depth", "application/octet-stream"), (colour, "/colour", "application/octet-stream")]
     for entry in entries:
@@ -202,7 +204,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                 if entry[1]=="/stamp":
                     
                     jsondata={"username": USERNAME, "password": PASSWORD, "stamp": os.path.basename(stamp).strip(".txt")}
-                    jsonstr = json.dumps(jsondata)  # str
+                    jsonstr =  json.dumps(jsondata)  # str
                     jsonbytes = jsonstr.encode() # bytes
                     print(" ... jsondata", jsondata)
                     
@@ -216,10 +218,11 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                     print(" ... encrypted_message", type(encrypted_message), encrypted_message)
                     
                     result_upload = requests.post(
-                        url=url_address + entry[1],
+                        # url=url_address + entry[1],
+                        url=url_address + entry[1] + "/" + pathlib.Path(entry[0]).stem,
                         headers={"Content-type": entry[2]},
                         data=encrypted_message,
-                        verify ='/etc/ecodata/ecovision2.crt',
+                        verify = CERTIFICATE, #'/etc/ecodata/ecovision2.crt',
                         timeout=timeout,
                     )
                     if result_upload.status_code != 200:
@@ -249,7 +252,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                             url = _url,
                             headers={"Content-type": entry[2]},
                             data=encrypted_message,
-                            verify ='/etc/ecodata/ecovision2.crt',
+                            verify = CERTIFICATE, #'/etc/ecodata/ecovision2.crt',
                             timeout=timeout,
                         )
                         print("[INFO]result upload status: {}".format(result_upload.status_code))
@@ -259,7 +262,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                     raise Exception("SendItToCloudServer request failed for '{}': error=?".format(entry))
                 
             except Exception as err:
-                raise FileExistsError("SendItToCloudServer failed sending {} error=?".format(entry))
+                raise Exception("SendItToCloudServer failed sending {} error=?".format(entry))
 
     if colour is not None:
         try:
@@ -269,7 +272,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
                 # url=url_address + "/process/" + os.path.basename(stamp).strip(".txt"),
                 url=url,
                 json={"username": USERNAME, "password": PASSWORD},
-                verify ='/etc/ecodata/ecovision2.crt',
+                verify = CERTIFICATE, #'/etc/ecodata/ecovision2.crt',
                 timeout=timeout,
             )
             print("result post process colour: {}".format(result_process.status_code))
@@ -283,7 +286,7 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
             result_process = requests.post(
                 url=url_address + "/nocolour/" + os.path.basename(stamp),
                 json={"username": USERNAME, "password": PASSWORD},
-                verify ='/etc/ecodata/ecovision2.crt',
+                verify = CERTIFICATE, #'/etc/ecodata/ecovision2.crt',
                 timeout=timeout,
             )
             if result_process.status_code != 200:
@@ -303,9 +306,9 @@ def SendItToCloudServer(USERNAME: str, PASSWORD: str, url_address: str, timeout:
 #                     colour_filename="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-01T13:04:39.014000-nbp1-colour.png",
 #                     depth_filename="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-01T13:04:39.014000-nbp1-depth.png")
 
-SendItToCloudServer(USERNAME="usereco", PASSWORD="routoutaille",
+SendItToCloudServer(USERNAME="usereco", PASSWORD="routoutaille", CERTIFICATE='/etc/ecodata/ecovision_localhost.crt',
                     url_address=URL, timeout=10,
-                    stamp="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-19T21-54-14.463000.txt", # this does not have to exist
-                    colour="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-19T21-54-14.463000-nbp2-colour.png",
-                    depth="/home/ubuntu/SimpleWebApp/results/tests/chute_d-2023-11-19T21-54-14.463000-nbp2-depth.png")
+                    stamp="/home/ubuntu/SimpleWebApp/simul/tests_images/chute_d-2024-01-01T03%3A28%3A50.158000.txt", # this does not have to exist
+                    colour="/home/ubuntu/SimpleWebApp/simul/tests_images/chute_d-2024-01-01T03%3A28%3A50.158000-nbp1-colour.png",
+                    depth="/home/ubuntu/SimpleWebApp/simul/tests_images/chute_d-2024-01-01T03%3A28%3A50.158000-nbp1-depth.png")
 

@@ -1,0 +1,1 @@
+./venv/bin/python myproject.py -username $(/usr/bin/cat /etc/ecodata/username.txt) -password $(/usr/bin/cat /etc/ecodata/password.txt)

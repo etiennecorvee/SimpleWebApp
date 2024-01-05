@@ -12,6 +12,7 @@ import subprocess
 import pathlib
 import shutil
 import cv2
+import numpy as np
 from cryptography.fernet import Fernet
 from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _get_image_content_b64
@@ -40,6 +41,7 @@ from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _ge
 
 PORT=5001
 MOVE=False
+DISPLAY_COLOUR=True # TODO only admin case
 
 # remove the duplicated function (username and password) ?
 
@@ -726,6 +728,16 @@ def deleteprocessedimage_v(camId: str, filename: str):
             print("removed failed:", err)
             return {"details": "KO: file to be deleted failed"}, 400
 
+def concatenate(filename1: str, filename2: str):
+    images = []
+    for filename in [filename1, filename2]:
+        img = cv2.imread(filename)
+        img = np.array(img, dtype=np.ubyte)
+        images.append(img)
+
+    concat = np.hstack(images)
+    return concat
+
 @app.route('/result/<string:camId>', methods=['GET'])  # get to post because ajax needs to send username and password
 def result_api(camId: str):
     ret = check_user_pass()
@@ -823,6 +835,9 @@ def result_api_v(camId: str):
                                     org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(125, 246, 55), thickness=1)
                                 # TODO use a specific name
                             cv2.imwrite(filename="temp.png", img=displayImg)
+                            if DISPLAY_COLOUR is True and colourFilename is not None:
+                                displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
+                                cv2.imwrite(filename="temp.png", img=displayImg)
                             return _get_image_content_b64("temp.png")
                         except Exception as err:
                             print("[ERROR] {}".format(err))
@@ -832,14 +847,23 @@ def result_api_v(camId: str):
                 except:
                     draw_text(displayImagPath=displayImagPath, 
                         infoProcess=infoProcess+" mm file error", outputPath="temp.png")
+                    if DISPLAY_COLOUR is True and colourFilename is not None:
+                        displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
+                        cv2.imwrite(filename="temp.png", img=displayImg)
                     return _get_image_content_b64("temp.png")
             else:
                 draw_text(displayImagPath=displayImagPath, 
                     infoProcess=infoProcess+" error mm file", outputPath="temp.png")
+                if DISPLAY_COLOUR is True and colourFilename is not None:
+                    displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
+                    cv2.imwrite(filename="temp.png", img=displayImg)
                 return _get_image_content_b64("temp.png")
         else:
             draw_text(displayImagPath=displayImagPath, 
                 infoProcess=infoProcess+" no mm res", outputPath="temp.png")
+            if DISPLAY_COLOUR is True and colourFilename is not None:
+                displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
+                cv2.imwrite(filename="temp.png", img=displayImg)
             return _get_image_content_b64("temp.png")
 
         print("[ERROR]/result: reached end of endpoint")
