@@ -561,8 +561,8 @@ def draw_concatened_image_results(infoProcess: str,
                             displayImgDepthWithMM = cv2.putText(img=displayImgDepthWithMM, text=obj['class'],
                                 org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(125, 246, 55), thickness=1)
                             # TODO use a specific name
-                            outputImages.append(displayImgDepthWithMM)
-                            logprint(debug, " ... ... adding MM")
+                        outputImages.append(displayImgDepthWithMM)
+                        logprint(debug, " ... ... adding MM")
                         # cv2.imwrite(filename="temp.png", img=displayImg)
                         # if DISPLAY_COLOUR is True and colourFilename is not None:
                         #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
