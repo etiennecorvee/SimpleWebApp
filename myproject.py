@@ -693,14 +693,24 @@ def processedimage(camId: str, filename: str):
 @app.route('/processedimage_v/<string:camId>/<string:filename>', methods=['GET'])
 @flask_login.login_required
 def processedimage_v(camId: str, filename: str):
-    infoProcess = ""
-    concatenatedImagesResult = draw_concatened_image_results(infoProcess=infoProcess,
-            directory=app.config['PROCESSED'], 
-            depthFilename=filename,
-            DISPLAY_COLOUR=DISPLAY_COLOUR, colourFilename=filename.replace("depth.png", "colour.png"),
-            DISPLAY_MM=DISPLAY_MM, mmFilename=filename.replace("depth.png", "colour.mm"))
+    
+    try:
+        infoProcess = ""
+        concatenatedImagesResult = draw_concatened_image_results(infoProcess=infoProcess,
+                directory=app.config['PROCESSED'], 
+                depthFilename=filename,
+                DISPLAY_COLOUR=DISPLAY_COLOUR, colourFilename=filename.replace("depth.png", "colour.png"),
+                DISPLAY_MM=DISPLAY_MM, mmFilename=filename.replace("depth.png", "colour.mm"))
+    except Exception as err:
+            print("/processedimage_v failed: {}".format(err))
+            return get_image_content_b64_from_path("images/error.png")
         
-    return get_image_content_b64(concatenatedImagesResult)
+    try:
+        return get_image_content_b64(concatenatedImagesResult)
+    except Exception as err:
+        print("/processedimage_v failed: {}".format(err))
+        return get_image_content_b64_from_path("images/error.png")
+     
     
     # fullpath_depth = os.path.join(app.config['PROCESSED'], filename)
     # print(" ... ... processedimage, camId", camId, "filename", filename, "fullpath_depth", fullpath_depth)
@@ -823,13 +833,21 @@ def result_api_v(camId: str):
             return get_image_content_b64_from_path("images/error.png")
         
         print(" ... infoProcess before concat", infoProcess)
-        concatenatedImagesResult = draw_concatened_image_results(infoProcess=infoProcess,
-            directory=app.config['LAST'], 
-            depthFilename=depthFilename,
-            DISPLAY_COLOUR=DISPLAY_COLOUR, colourFilename=colourFilename,
-            DISPLAY_MM=DISPLAY_MM, mmFilename=mmFilename)
+        try:
+            concatenatedImagesResult = draw_concatened_image_results(infoProcess=infoProcess,
+                directory=app.config['LAST'], 
+                depthFilename=depthFilename,
+                DISPLAY_COLOUR=DISPLAY_COLOUR, colourFilename=colourFilename,
+                DISPLAY_MM=DISPLAY_MM, mmFilename=mmFilename)
+        except Exception as err:
+            print("/result_api_v failed: {}".format(err))
+            return get_image_content_b64_from_path("images/error.png")
         
-        return get_image_content_b64(concatenatedImagesResult)
+        try:
+            return get_image_content_b64(concatenatedImagesResult)
+        except Exception as err:
+            print("/result_api_v failed: {}".format(err))
+            return get_image_content_b64_from_path("images/error.png")
         
         displayImagPath = os.path.join(app.config['LAST'], depthFilename)
         displayImg = cv2.imread(displayImagPath)

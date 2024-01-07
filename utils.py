@@ -489,6 +489,14 @@ def get_image_content_b64_from_path(imagepath: str) -> str:
         return image_b64
 
 def get_image_content_b64(bytes_content: bytes) -> str:
+    
+    if type(bytes_content) != bytes:
+        errmsg = "[ERROR]get_image_content_b64: of wrong type: {}".format(type(bytes_content))
+        print(errmsg)
+        raise TypeError(errmsg)
+    
+    # .tobytes() 
+    
     image_b = base64.b64encode(bytes_content) # image_b.read())
     image_b64 = image_b.decode('utf-8')
     # print(" ... content", type(content), type(image_b), type(image_b64)) #  <class 'bytes'> <class 'bytes'> <class 'str'>
