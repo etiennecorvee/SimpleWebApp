@@ -8,6 +8,17 @@ from typing import Union, Tuple, List
 from dataclasses import dataclass
 from werkzeug.datastructures.headers import Headers
 import cv2
+import numpy as np
+
+def concatenate(filename1: str, filename2: str):
+    images = []
+    for filename in [filename1, filename2]:
+        img = cv2.imread(filename)
+        img = np.array(img, dtype=np.ubyte)
+        images.append(img)
+
+    concat = np.hstack(images)
+    return concat
 
 def get_stat_time(filepath: str) -> float:
     stat = os.stat(filepath)
@@ -465,7 +476,7 @@ def get_stamp_from_request_stamp_data_and_create_empty_file(textData: str, dstDi
         print(msg)
         raise FileExistsError(msg)
 
-def _get_image_content_b64(imagepath: str) -> str:
+def get_image_content_b64_from_path(imagepath: str) -> str:
     with open(imagepath, "rb") as fin:
         content = fin.read() # bytes
         image_b = base64.b64encode(content) # image_b.read())
@@ -473,10 +484,104 @@ def _get_image_content_b64(imagepath: str) -> str:
         # print(" ... content", type(content), type(image_b), type(image_b64)) #  <class 'bytes'> <class 'bytes'> <class 'str'>
         return image_b64
 
-def draw_text(displayImagPath: str, infoProcess: str, outputPath: str="temp.png"):
+def get_image_content_b64(bytes_content: bytes) -> str:
+    image_b = base64.b64encode(bytes_content) # image_b.read())
+    image_b64 = image_b.decode('utf-8')
+    # print(" ... content", type(content), type(image_b), type(image_b64)) #  <class 'bytes'> <class 'bytes'> <class 'str'>
+    return image_b64
+
+def draw_text_and_save(displayImagPath: str, infoProcess: str, outputPath: str="temp.png"):
     displayImg = cv2.imread(displayImagPath)
     height = displayImg.shape[0]
     displayImg = cv2.putText(img=displayImg, text=infoProcess, org=(10, int(height/2)), 
                 fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(54, 212, 204), thickness=1)
     cv2.imwrite(filename=outputPath, img=displayImg)
+
+def draw_text(displayImagPath: str, infoProcess: str):
+    displayImg = cv2.imread(displayImagPath)
+    height = displayImg.shape[0]
+    displayImg = cv2.putText(img=displayImg, text=infoProcess, org=(10, int(height/2)), 
+                fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(54, 212, 204), thickness=1)
+    return displayImg
+
+def draw_concatened_image_results(infoProcess: str,
+            directory: str, 
+            depthFilename: str,
+            DISPLAY_COLOUR: bool, colourFilename: str,
+            DISPLAY_MM: bool, mmFilename: str):
     
+    outputImages = []
+    
+    if os.path.isfile(os.path.join(directory, depthFilename)) is False:
+        raise FileExistsError("No Depth image: {}".format(os.path.join(directory, depthFilename)))
+    
+    displayImgDepth = cv2.imread(os.path.join(directory, depthFilename))
+    outputImages.append(displayImgDepth)
+    
+    if DISPLAY_COLOUR is True and colourFilename is not None:
+        if os.path.isfile(os.path.join(directory, colourFilename)) is True:
+            colourImage = cv2.imread(os.path.join(directory, colourFilename))
+            outputImages.append(colourImage)
+    
+    if DISPLAY_MM is True and mmFilename is not None:
+        if os.path.isfile(os.path.join(directory, mmFilename)) is True:
+            try:
+                with open(os.path.join(directory, mmFilename), "r") as fjson:
+                    data = json.loads(fjson.read())
+                    # print(" ... mmdetection data", data)
+                    try:
+                        displayImgDepthWithMM = displayImgDepth.copy()
+                        for obj in data['predictions']:
+                            # if obj['class'] == 'person':
+                            left = int(obj['bbox'][0])
+                            top = int(obj['bbox'][1])  
+                            right = int(obj['bbox'][2])
+                            bottom = int(obj['bbox'][3])
+                            displayImgDepthWithMM = cv2.rectangle(displayImgDepthWithMM, (left, top), (right, bottom), (200,50,200), 2)
+                            displayImgDepthWithMM = cv2.putText(img=displayImgDepthWithMM, text=obj['class'],
+                                org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(125, 246, 55), thickness=1)
+                            # TODO use a specific name
+                            outputImages.append(displayImgDepthWithMM)
+                        # cv2.imwrite(filename="temp.png", img=displayImg)
+                        # if DISPLAY_COLOUR is True and colourFilename is not None:
+                        #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
+                        #     cv2.imwrite(filename="temp.png", img=displayImg)
+                        # return get_image_content_b64_from_path("temp.png")
+                    except Exception as err:
+                        infoProcess=infoProcess+" draw mm res failed"
+                        print("[ERROR] {}".format(err))
+                        # draw_text_and_save(displayImagPath="images/error.png", 
+                        #     infoProcess=infoProcess+" draw mm res failed", outputPath="temp.png")
+                        # return get_image_content_b64_from_path("temp.png")
+            except:
+                infoProcess=infoProcess+" mm file error"
+                # draw_text_and_save(displayImagPath=displayImagPath, 
+                #     infoProcess=infoProcess+" mm file error", outputPath="temp.png")
+                # if DISPLAY_COLOUR is True and colourFilename is not None:
+                #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
+                #     cv2.imwrite(filename="temp.png", img=displayImg)
+                # return get_image_content_b64_from_path("temp.png")
+        else:
+            infoProcess=infoProcess+" error mm file"
+            # draw_text_and_save(displayImagPath=displayImagPath, 
+            #     infoProcess=infoProcess+" error mm file", outputPath="temp.png")
+            # if DISPLAY_COLOUR is True and colourFilename is not None:
+            #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
+            #     cv2.imwrite(filename="temp.png", img=displayImg)
+            # return get_image_content_b64_from_path("temp.png")
+    else:
+        infoProcess=infoProcess+" no mm res"
+        # draw_text_and_save(displayImagPath=displayImagPath, 
+        #     infoProcess=infoProcess+" no mm res", outputPath="temp.png")
+        # if DISPLAY_COLOUR is True and colourFilename is not None:
+        #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
+        #     cv2.imwrite(filename="temp.png", img=displayImg)
+        # return get_image_content_b64_from_path("temp.png")
+    
+    print(" ... infoProcess after concat", infoProcess)
+    
+    outputImage = np.hstack(outputImages)
+    height = outputImage.shape[0]
+    cv2.putText(img=outputImage, text=infoProcess, org=(10, height-10), fontFace=cv2.FONT_HERSHEY_DUPLEX, 
+                fontScale=0.5, color=(54, 212, 204), thickness=1)
+    return outputImage

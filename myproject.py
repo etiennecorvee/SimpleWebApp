@@ -2,7 +2,7 @@ import os
 import time
 import json
 import argparse
-import requests
+# import requests
 from flask import Flask
 from flask import request, render_template
 from flask import redirect, url_for
@@ -10,12 +10,13 @@ import flask_login
 from logging import getLogger
 import subprocess
 import pathlib
-import shutil
-import cv2
-import numpy as np
+# import shutil
+# import cv2
+# import numpy as np
 from cryptography.fernet import Fernet
 from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
-from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _get_image_content_b64
+from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, draw_text_and_save
+from utils import draw_concatened_image_results, get_image_content_b64_from_path, get_image_content_b64
 
 # export USERNAME=$(/usr/bin/cat /etc/ecodata/username.txt) && export PASSWORD=$(/usr/bin/cat /etc/ecodata/password.txt) && /home/ubuntu/SimpleWebApp/venv/bin/gunicorn --workers 1 --certfile=/etc/ecodata/ecovision.crt --keyfile=/etc/ecodata/ecovision.key --bind 0.0.0.0:5001 wsgi:app
 
@@ -42,6 +43,7 @@ from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, _ge
 PORT=5001
 MOVE=False
 DISPLAY_COLOUR=True # TODO only admin case
+DISPLAY_MM=True
 
 # remove the duplicated function (username and password) ?
 
@@ -695,14 +697,39 @@ def processedimage(camId: str, filename: str):
 @app.route('/processedimage_v/<string:camId>/<string:filename>', methods=['GET'])
 @flask_login.login_required
 def processedimage_v(camId: str, filename: str):
-    fullpath = os.path.join(app.config['PROCESSED'], filename)
-    print(" ... ... processedimage, camId", camId, "filename", filename, "fullpath", fullpath)
-    if os.path.isfile(fullpath) is False:
-        print(" ... ...does not exist")
-        return _get_image_content_b64("images/error.png")
-    else:
-        print(" ... ...ok")
-        return _get_image_content_b64(fullpath)
+    infoProcess = ""
+    concatenatedImagesResult = draw_concatened_image_results(infoProcess=infoProcess,
+            directory=app.config['PROCESSED'], 
+            depthFilename=filename,
+            DISPLAY_COLOUR=DISPLAY_COLOUR, colourFilename=filename.replace("depth.png", "colour.png"),
+            DISPLAY_MM=DISPLAY_MM, mmFilename=filename.replace("depth.png", "colour.mm")
+        
+    return get_image_content_b64(concatenatedImagesResult)
+    
+    # fullpath_depth = os.path.join(app.config['PROCESSED'], filename)
+    # print(" ... ... processedimage, camId", camId, "filename", filename, "fullpath_depth", fullpath_depth)
+    # if os.path.isfile(fullpath_depth) is False:
+    #     print(" ... ...does not exist")
+    #     return get_image_content_b64_from_path("images/error.png")
+    # else:
+    #     print(" ... ...ok")
+    #     return get_image_content_b64_from_path(fullpath_depth)
+        
+        # if DISPLAY_COLOUR is False:
+        #     print(" ... ...ok")
+        #     HERE draw mm res
+        #     return get_image_content_b64_from_path(fullpath_depth)
+        # else:
+        #     fullpath_colour = fullpath_depth.replace("depth", "colour")
+        #     if os.path.isfile(fullpath_colour) is True:
+        #         print(" ... ...ok w rgb")
+        #         img = concatenate(fullpath_depth, fullpath_colour)
+        #         cv2.imwrite(filename="temp2.png", img=img)
+        #         return get_image_content_b64_from_path("temp2.png")
+        #     else:
+        #         print(" ... ...ok bu colour not found")
+        #         HERE draw mm res
+        #         return get_image_content_b64_from_path(fullpath_depth)
 
 @app.route('/deleteprocessedimage/<string:camId>/<string:filename>', methods=['DELETE'])
 def deleteprocessedimage(camId: str, filename: str):
@@ -728,16 +755,6 @@ def deleteprocessedimage_v(camId: str, filename: str):
             print("removed failed:", err)
             return {"details": "KO: file to be deleted failed"}, 400
 
-def concatenate(filename1: str, filename2: str):
-    images = []
-    for filename in [filename1, filename2]:
-        img = cv2.imread(filename)
-        img = np.array(img, dtype=np.ubyte)
-        images.append(img)
-
-    concat = np.hstack(images)
-    return concat
-
 @app.route('/result/<string:camId>', methods=['GET'])  # get to post because ajax needs to send username and password
 def result_api(camId: str):
     ret = check_user_pass()
@@ -751,14 +768,14 @@ def result_api_v(camId: str):
     
     infoPath = os.path.join(app.config['LAST'], "info.txt")
     if os.path.isfile(infoPath) is False:
-        return _get_image_content_b64("images/empty.png")
+        return get_image_content_b64_from_path("images/empty.png")
     
     with open(infoPath, "r") as fin:
         lines = fin.readlines()
         if len(lines) < 3 : # info, stamp.png, depth.png + colour.png + colour.mm
             # TODO draw on image or message on html
             print("[ERROR]/result, nb lines in infoPath {}: nblines {}, lines={}".format(infoPath, len(lines), lines))
-            return _get_image_content_b64("images/error.png")
+            return get_image_content_b64_from_path("images/error.png")
 
         infoProcess = None
         stampFilename = None
@@ -773,41 +790,50 @@ def result_api_v(camId: str):
                 stampFilename = lines[index].strip()
                 if ".txt" not in stampFilename:
                     print("[ERROR]/result: .txt not found in stampFilename: {}".format(stampFilename))
-                    draw_text(displayImagPath="images/error.png", 
+                    draw_text_and_save(displayImagPath="images/error.png", 
                         infoProcess=infoProcess, outputPath="temp.png")
-                    return _get_image_content_b64("temp.png")
+                    return get_image_content_b64_from_path("temp.png")
             elif index==2: # depth.png
                 depthFilename = lines[index].strip()
                 if "depth" not in depthFilename or ".png" not in depthFilename:
                     print("[ERROR]/result: depth and .png not found in depthFilename: {}".format(depthFilename))
-                    draw_text(displayImagPath="images/error.png", 
+                    draw_text_and_save(displayImagPath="images/error.png", 
                         infoProcess=infoProcess+" depth png not found in {}".format(depthFilename), outputPath="temp.png")
-                    return _get_image_content_b64("temp.png")
+                    return get_image_content_b64_from_path("temp.png")
             elif index==3: # colour.png
                 colourFilename = lines[index].strip()
                 if "colour" not in colourFilename or ".png" not in colourFilename:
                     print("[ERROR]/result: colour and .png not found in colourFilename: {}".format(colourFilename))
-                    draw_text(displayImagPath="images/error.png", 
+                    draw_text_and_save(displayImagPath="images/error.png", 
                         infoProcess=infoProcess+" colour png not found in {}".format(colourFilename), outputPath="temp.png")
-                    return _get_image_content_b64("temp.png")
+                    return get_image_content_b64_from_path("temp.png")
             elif index==4: # colour.mm
                 mmFilename = lines[index].strip()
                 if "colour" not in mmFilename or ".mm" not in mmFilename:
                     print("[ERROR]/result: colour and mm not found in stampFilename: {}".format(mmFilename))
-                    draw_text(displayImagPath="images/error.png", 
+                    draw_text_and_save(displayImagPath="images/error.png", 
                         infoProcess=infoProcess+" colour mm not found in {}".format(colourFilename), outputPath="temp.png")
-                    return _get_image_content_b64("temp.png")
+                    return get_image_content_b64_from_path("temp.png")
 
         if os.path.isfile(os.path.join(app.config['LAST'], stampFilename)) is False:
             print("[ERROR]/result: stampFilename: {} not found in last folder".format(stampFilename))
-            draw_text(displayImagPath="images/error.png", 
+            draw_text_and_save(displayImagPath="images/error.png", 
                 infoProcess=infoProcess+" stamp file not found {}".format(stampFilename), outputPath="temp.png")
-            return _get_image_content_b64("images/error.png")
+            return get_image_content_b64_from_path("images/error.png")
         if os.path.isfile(os.path.join(app.config['LAST'], depthFilename)) is False:
             print("[ERROR]/result: depthFilename: {} not found in last folder".format(depthFilename))
-            draw_text(displayImagPath="images/error.png", 
+            draw_text_and_save(displayImagPath="images/error.png", 
                 infoProcess=infoProcess+" depth file not found {}".format(depthFilename), outputPath="temp.png")
-            return _get_image_content_b64("images/error.png")
+            return get_image_content_b64_from_path("images/error.png")
+        
+        print(" ... infoProcess before concat", infoProcess)
+        concatenatedImagesResult = draw_concatened_image_results(infoProcess=infoProcess,
+            directory=app.config['LAST'], 
+            depthFilename=depthFilename,
+            DISPLAY_COLOUR=DISPLAY_COLOUR, colourFilename=colourFilename,
+            DISPLAY_MM=DISPLAY_MM, mmFilename=mmFilename)
+        
+        return get_image_content_b64(concatenatedImagesResult)
         
         displayImagPath = os.path.join(app.config['LAST'], depthFilename)
         displayImg = cv2.imread(displayImagPath)
@@ -838,36 +864,36 @@ def result_api_v(camId: str):
                             if DISPLAY_COLOUR is True and colourFilename is not None:
                                 displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
                                 cv2.imwrite(filename="temp.png", img=displayImg)
-                            return _get_image_content_b64("temp.png")
+                            return get_image_content_b64_from_path("temp.png")
                         except Exception as err:
                             print("[ERROR] {}".format(err))
-                            draw_text(displayImagPath="images/error.png", 
+                            draw_text_and_save(displayImagPath="images/error.png", 
                                 infoProcess=infoProcess+" draw mm res failed", outputPath="temp.png")
-                            return _get_image_content_b64("temp.png")
+                            return get_image_content_b64_from_path("temp.png")
                 except:
-                    draw_text(displayImagPath=displayImagPath, 
+                    draw_text_and_save(displayImagPath=displayImagPath, 
                         infoProcess=infoProcess+" mm file error", outputPath="temp.png")
                     if DISPLAY_COLOUR is True and colourFilename is not None:
                         displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
                         cv2.imwrite(filename="temp.png", img=displayImg)
-                    return _get_image_content_b64("temp.png")
+                    return get_image_content_b64_from_path("temp.png")
             else:
-                draw_text(displayImagPath=displayImagPath, 
+                draw_text_and_save(displayImagPath=displayImagPath, 
                     infoProcess=infoProcess+" error mm file", outputPath="temp.png")
                 if DISPLAY_COLOUR is True and colourFilename is not None:
                     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
                     cv2.imwrite(filename="temp.png", img=displayImg)
-                return _get_image_content_b64("temp.png")
+                return get_image_content_b64_from_path("temp.png")
         else:
-            draw_text(displayImagPath=displayImagPath, 
+            draw_text_and_save(displayImagPath=displayImagPath, 
                 infoProcess=infoProcess+" no mm res", outputPath="temp.png")
             if DISPLAY_COLOUR is True and colourFilename is not None:
                 displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
                 cv2.imwrite(filename="temp.png", img=displayImg)
-            return _get_image_content_b64("temp.png")
+            return get_image_content_b64_from_path("temp.png")
 
         print("[ERROR]/result: reached end of endpoint")
-        return _get_image_content_b64("images/error.png")
+        return get_image_content_b64_from_path("images/error.png")
 
 @app.route('/resultListProcessed', methods=['GET']) # get to post because ajax needs to send username and password
 def resultListProcessed():
