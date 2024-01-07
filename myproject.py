@@ -706,7 +706,7 @@ def processedimage_v(camId: str, filename: str):
             return get_image_content_b64_from_path("images/error.png")
         
     try:
-        return get_image_content_b64(concatenatedImagesResult)
+        return get_image_content_b64(concatenatedImagesResult.tobytes())
     except Exception as err:
         print("/processedimage_v failed: {}".format(err))
         return get_image_content_b64_from_path("images/error.png")
@@ -844,7 +844,7 @@ def result_api_v(camId: str):
             return get_image_content_b64_from_path("images/error.png")
         
         try:
-            return get_image_content_b64(concatenatedImagesResult)
+            return get_image_content_b64(concatenatedImagesResult.tobytes())
         except Exception as err:
             print("/result_api_v failed: {}".format(err))
             return get_image_content_b64_from_path("images/error.png")
