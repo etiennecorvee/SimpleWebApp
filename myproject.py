@@ -702,7 +702,7 @@ def processedimage_v(camId: str, filename: str):
             directory=app.config['PROCESSED'], 
             depthFilename=filename,
             DISPLAY_COLOUR=DISPLAY_COLOUR, colourFilename=filename.replace("depth.png", "colour.png"),
-            DISPLAY_MM=DISPLAY_MM, mmFilename=filename.replace("depth.png", "colour.mm")
+            DISPLAY_MM=DISPLAY_MM, mmFilename=filename.replace("depth.png", "colour.mm"))
         
     return get_image_content_b64(concatenatedImagesResult)
     
