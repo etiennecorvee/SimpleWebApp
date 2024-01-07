@@ -16,7 +16,7 @@ import pathlib
 from cryptography.fernet import Fernet
 from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, draw_text_and_save
-from utils import draw_concatened_image_results, get_image_content_b64_from_path, get_image_content_b64
+from utils import logprint, draw_concatened_image_results, get_image_content_b64_from_path, get_image_content_b64
 
 # export USERNAME=$(/usr/bin/cat /etc/ecodata/username.txt) && export PASSWORD=$(/usr/bin/cat /etc/ecodata/password.txt) && /home/ubuntu/SimpleWebApp/venv/bin/gunicorn --workers 1 --certfile=/etc/ecodata/ecovision.crt --keyfile=/etc/ecodata/ecovision.key --bind 0.0.0.0:5001 wsgi:app
 
@@ -141,10 +141,6 @@ try:
                          "outputs"])
 except Exception as err:
     raise Exception(err)
-
-def logprint(debug: bool, msg: str):
-    if debug is True:
-        print("[DEBUG]{}".format(msg))
 
 def load_key():
     """

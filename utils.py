@@ -10,6 +10,10 @@ from werkzeug.datastructures.headers import Headers
 import cv2
 import numpy as np
 
+def logprint(debug: bool, msg: str):
+    if debug is True:
+        print("[DEBUG]{}".format(msg))
+
 def concatenate(filename1: str, filename2: str):
     images = []
     for filename in [filename1, filename2]:
@@ -510,6 +514,8 @@ def draw_concatened_image_results(infoProcess: str,
             DISPLAY_COLOUR: bool, colourFilename: str,
             DISPLAY_MM: bool, mmFilename: str):
     
+    debug = True
+    
     outputImages = []
     
     if os.path.isfile(os.path.join(directory, depthFilename)) is False:
@@ -517,11 +523,13 @@ def draw_concatened_image_results(infoProcess: str,
     
     displayImgDepth = cv2.imread(os.path.join(directory, depthFilename))
     outputImages.append(displayImgDepth)
+    logprint(debug, " ... ... adding depth")
     
     if DISPLAY_COLOUR is True and colourFilename is not None:
         if os.path.isfile(os.path.join(directory, colourFilename)) is True:
             colourImage = cv2.imread(os.path.join(directory, colourFilename))
             outputImages.append(colourImage)
+            logprint(debug, " ... ... adding colour")
     
     if DISPLAY_MM is True and mmFilename is not None:
         if os.path.isfile(os.path.join(directory, mmFilename)) is True:
@@ -542,6 +550,7 @@ def draw_concatened_image_results(infoProcess: str,
                                 org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(125, 246, 55), thickness=1)
                             # TODO use a specific name
                             outputImages.append(displayImgDepthWithMM)
+                            logprint(debug, " ... ... adding MM")
                         # cv2.imwrite(filename="temp.png", img=displayImg)
                         # if DISPLAY_COLOUR is True and colourFilename is not None:
                         #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
@@ -582,6 +591,7 @@ def draw_concatened_image_results(infoProcess: str,
     
     outputImage = np.hstack(outputImages)
     height = outputImage.shape[0]
+    logprint(debug, " ... ... outoput height {} widht {}".format(height, outputImage.shape[1]))
     cv2.putText(img=outputImage, text=infoProcess, org=(10, height-10), fontFace=cv2.FONT_HERSHEY_DUPLEX, 
                 fontScale=0.5, color=(54, 212, 204), thickness=1)
     return outputImage
