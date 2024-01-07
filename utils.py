@@ -490,6 +490,10 @@ def get_image_content_b64_from_path(imagepath: str) -> str:
 
 def get_image_content_b64(bytes_content: bytes) -> str:
     
+    cv2.imwrite(filename="temp.png", img=bytes_content)
+    with open("temp.png", "rb") as fin:
+        bytes_content = fin.read()
+    
     if type(bytes_content) != bytes:
         errmsg = "[ERROR]get_image_content_b64: of wrong type: {}".format(type(bytes_content))
         print(errmsg)
