@@ -13,10 +13,10 @@ import pathlib
 # import shutil
 # import cv2
 # import numpy as np
-from cryptography.fernet import Fernet
-from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp_data_and_create_empty_file, create_dirs
+from utils import get_4_filenames_from_colour_name, create_dirs
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, draw_text_and_save
 from utils import logprint, draw_concatened_image_results, get_image_content_b64_from_path, get_image_content_b64
+from utils import load_key, decrypt_request_data
 
 # TODO
 # have a click button to send an reboot reply on the alive endpoint so that ecovision reboot and have colour back again
@@ -35,15 +35,16 @@ from utils import logprint, draw_concatened_image_results, get_image_content_b64
 # SendItToCloudServer in simul, copy it to ecovision
 # remove all the debug print starting with ... and forced debug
 
+DEBUG = True
 PORT=5001
 MOVE=False
 DISPLAY_COLOUR=True # TODO only admin case
 DISPLAY_MM=True
+KEYFILE="/etc/ecodata/secret.key"
+VERSION="1.2.0"
 
 # add select box for each case: failed + ... + wocoour + the one we have with overlap drwan detection IA
 # firewall
-
-
 # too big proces in image put etxt plus timestamp shall be displayed
 # mm empty !!!
 # duplicated between procssed and last ... why ?
@@ -52,40 +53,6 @@ DISPLAY_MM=True
 #         if unidentified by mm
 #         => special case
 #         ecovision
-#         [WARNING] this is not a valid file: /home/ubuntu/EcoVision/ecolog/2023-11-16T20:32:24.617000.txt
-
-#     ecovision
-#     error: object file .git/objects/12/221cd95100ee283dbb36e431a15441eac9e85a is empty
-# fatal: loose object 12221cd95100ee283dbb36e431a15441eac9e85a (stored in .git/objects/12/221cd95100ee283dbb36e431a15441eac9e85a) is corrupt
-
-'''
-/stamp POST
-  => /uploads/stamp.txt
-  
-/colour POST
-  => /uploads/stamp-colour.png
-  
-/depth POST
-  => /uploads/stamp-depth.png
-
-if colour sent from RGBD
-/process/<stamped_colour>
- /uploads/stamp-colour.png => mmdetection => /uploads/stamp-colour.mm
-   ok: move /uploads/stamp + colour + depth + mm => /processed
-   ko: move /uploads/stamp + colour + depth => failed_mm
- 
-if no colour sent from RGBD
-/nocolour/<stamp>
-  move /uploads/stamp + colour + depth => /processed
-
-/result GET  <=  html page request every N sec
-  TODO display latest from timestamp filename not stat
-
-TODO night case : no object detected at all in mm => <=> nocolour
-
-TODO purge: if filename too old => moved to /backup_results
-
-'''
 
 logger = getLogger(__name__)
 
@@ -99,10 +66,6 @@ login_manager.init_app(app)
 # users = {'userhere': {'password': 'passwordhere'}}
 class User(flask_login.UserMixin): ...
 
-
-DEBUG = True
-
-
 PROJ_PATH = os.path.dirname(os.path.realpath(__file__))
 RESULTS_PATH = os.path.join(PROJ_PATH, "results")
 
@@ -111,7 +74,8 @@ app.config['PROCESSED'] = os.path.join(RESULTS_PATH, "processed")
 app.config['FAILED_MM'] = os.path.join(RESULTS_PATH, "failed_mm")
 app.config['LAST'] = os.path.join(RESULTS_PATH, "last")
 app.config['ALIVE'] = os.path.join(RESULTS_PATH, "alive")
-app.config['MM_OUTPUT_DIR'] = os.path.join(PROJ_PATH, "outputs", "preds")
+app.config['MM_OUTPUT_DIR'] = os.path.join(PROJ_PATH, "outputs", "preds") # used for mm detection results
+app.config['RESET'] = False
 
 # when using gunicorn, we have to set username and password via env vars
 if "USERNAME" in os.environ:
@@ -130,43 +94,6 @@ try:
 except Exception as err:
     raise Exception(err)
 
-def load_key():
-    """
-    Loads the key named `secret.key` from the current directory.
-    """
-    try:
-        keyfile = "/etc/ecodata/secret.key"
-        if os.path.isfile(keyfile) is False:
-            raise FileExistsError("key file does not exist")
-        with open(keyfile, "rb") as fkey:
-            return fkey.read()
-    except Exception as err:
-        raise FileExistsError("key file was not found")
-
-def decrypt_request_data(request_data):
-    try:
-        key = load_key()
-    except Exception as err:
-        raise Exception("[ERROR] load key failed: {}".format(err))
-    
-    try:
-        f = Fernet(key)
-        decrypted_message = f.decrypt(request_data)
-    except Exception as err:
-        raise Exception("[ERROR] decryption failed: {}".format(err))
-    
-    jsondict = None
-    try:
-        # print(" ... decrypted_message", decrypted_message)
-        jsonstr = decrypted_message.decode()
-        # print(" ... json_str", type(jsonstr), jsonstr)
-        jsondict = json.loads(jsonstr)
-        # print(" ... jsondict", type(jsondict), jsondict)
-    except Exception as err:
-        raise Exception("[ERROR] convert to json dict failed: {}".format(err))
-
-    return jsondict
-
 @login_manager.user_loader
 def user_loader(email):
 
@@ -178,30 +105,10 @@ def user_loader(email):
     user.id = email
     return user
 
-# @login_manager.request_loader
-# def request_loader(request):
-#     email = request.form.get('email')
-#     if email not in users:
-#         return
-    
-#     user = User()
-#     user.id = email
-#     return user
-
-# @app.route("/hello")
-# def hello():
-#     return "<h1 style='color:blue'>Hello There!</h1>"
-
-# without login
-# @app.route("/")
-# def upload_file():
-#     return render_template('img_render.html')
-
 # with login
 @app.route('/img_render', methods = ['GET', 'POST'])
 @flask_login.login_required
 def img_render():
-    # return render_template('img_render.html', USERNAME=app.config["USERNAME"], PASSWORD=app.config["PASSWORD"])
     return render_template('img_render.html')
 
 @app.route('/', methods = ['GET', 'POST'])
@@ -230,6 +137,19 @@ def login():
             return redirect(url_for('logout'))
 
     return render_template('login.html')
+
+@app.route('/relaunch', methods = ['POST'])
+def relaunch():
+    ret = check_user_pass()
+    if ret is not None:
+        return ret
+    return relaunch_v()
+
+@app.route('/relaunch_v', methods = ['POST'])
+@flask_login.login_required
+def relaunch_v():
+    print(" ... relaunch_v: reset ? ", app.config['RESET'], " set it to True")
+    app.config['RESET'] = True
 
 def check_user_pass(json_object: dict = None):
 
@@ -314,7 +234,7 @@ def version_v():
             success = flask_login.login_user(user)
             # print(" ... login: ", success)
             if success is True:
-                return "1.0.0", 200
+                return VERSION, 200
     
     return "unauthorized user", 401
 
@@ -343,7 +263,7 @@ def alive():
     #     return ret
     # return alive_from_v()
     try:
-        jsondict = decrypt_request_data(request_data=request.data)
+        jsondict = decrypt_request_data(request_data=request.data, keyfile=KEYFILE)
         ret = check_user_pass(jsondict)
     except Exception as err:
         print("[ERROR] authorisation not granted failed: {}".format(err))
@@ -357,6 +277,7 @@ def alive():
         return ret # forbidden hacker
     return alive_from_v(stamp=jsondict['stamp'])
 
+# ecovision sends its alive msg
 @app.route("/alive_v", methods=["POST"])
 @flask_login.login_required
 def alive_from_v(stamp: str):
@@ -369,6 +290,10 @@ def alive_from_v(stamp: str):
     
     # YO: no need to get more recent time : get it with sorted function insteaf
     # os.stat(path).st_birthtime
+    
+    reset = int(app.config['RESET'])
+    print(" ... alive reset ? ", reset)
+    app.config['RESET'] = False
         
     listfilenames = os.listdir(app.config['ALIVE'])
     debug = False
@@ -380,15 +305,15 @@ def alive_from_v(stamp: str):
             filename = listfilenames[index]
             filepath = os.path.join(app.config['ALIVE'], filename)
             if os.path.isfile(filepath) is False:
-                return {"details": "failed to find a file"}, 500
+                return {"details": "failed to find a file", "reset": "{}".format(reset) }, 500
             logprint(debug, "ALIVE: delete {}".format(filepath))
             os.remove(filepath)
             if os.path.isfile(filepath) is True:
-                return {"details": "failed to delete a file"}, 500
+                return {"details": "failed to delete a file", "reset": "{}".format(reset)}, 500
         
         listfilenames = os.listdir(app.config['ALIVE'])
         if len(listfilenames) != 1:
-            return {"details": "failed to delete all but last/most recent file"}, 500
+            return {"details": "failed to delete all but last/most recent file", "reset": "{}".format(reset)}, 500
     
     # filename = os.path.join(app.config['ALIVE'], time.strftime("%Y-%m-%dT%H-%M-%S") + ".txt")
     filename = os.path.join(app.config['ALIVE'], 
@@ -405,23 +330,23 @@ def alive_from_v(stamp: str):
         logprint(debug, "ALIVE: replacing unique file: {}".format(filepath))
         os.remove(filepath)
         if os.path.isfile(filepath) is True:
-            return {"details": "failed to replace a file"}, 500
+            return {"details": "failed to replace a file", "reset": "{}".format(reset)}, 500
         logprint(debug, "ALIVE: replacement file: {}".format(filename))
         with open(filename, "w") as fout:
             # fout.write(stamp)
             fout.write(filename)
     else:
-        return {"details": "alive: too many files present"}, 500
+        return {"details": "alive: too many files present", "reset": "{}".format(reset)}, 500
     
     if len(listfilenames) != 1:
-        return {"details": "alive: only one file should be present"}, 500
+        return {"details": "alive: only one file should be present", "reset": "{}".format(reset)}, 500
     
     # TODO 1
     # print delta detlat rtimestamp
     
     # logprint(True, " ... ALIVE: {}".format(os.listdir(app.config['ALIVE'])))
 
-    return {"details": "ok your alive"}, 200 
+    return {"details": "ok your alive", "reset": "{}".format(reset)}, 200 
 
 @app.route("/last_alive_v", methods=["GET"])
 @flask_login.login_required
@@ -555,7 +480,7 @@ def stamp(stampstem: str):
     # I can compare deltaz clock between stamp in json data and the one in endpoint
     
     try:
-        jsondict = decrypt_request_data(request_data=request.data)
+        jsondict = decrypt_request_data(request_data=request.data, keyfile=KEYFILE)
         ret = check_user_pass(jsondict)
     except Exception as err:
         print("[ERROR] authorisation not granted failed: {}".format(err))
@@ -568,7 +493,7 @@ def stamp(stampstem: str):
 @app.route("/stamp_v/<stampstem>", methods=["POST"])
 @flask_login.login_required
 def stamp_v(stampstem: str):
-    jsondict = decrypt_request_data(request_data=request.data)
+    jsondict = decrypt_request_data(request_data=request.data, keyfile=KEYFILE)
     print("[INFO]/stamp: received stamp: ", request.headers.get('Content-Type'), " => ({})".format(type(jsondict)))
     if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400
@@ -597,7 +522,7 @@ def stamp_v(stampstem: str):
 @app.route('/colour/<colourstem>', methods = ['POST'])
 def colour(colourstem: str):
     try:
-        jsondict = decrypt_request_data(request_data=request.data)
+        jsondict = decrypt_request_data(request_data=request.data, keyfile=KEYFILE)
         ret = check_user_pass(jsondict)
     except Exception as err:
         print("[ERROR] authorisation not granted failed: {}".format(err))
@@ -611,7 +536,7 @@ def colour(colourstem: str):
 @flask_login.login_required
 def colour_v(colourstem: str):
     
-    jsondict = decrypt_request_data(request_data=request.data)
+    jsondict = decrypt_request_data(request_data=request.data, keyfile=KEYFILE)
     print("[INFO]/colour_v: received stamp: {}".format(colourstem))
     if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400
@@ -637,7 +562,7 @@ def colour_v(colourstem: str):
 def depth(depthstem: str):
     
     try:
-        jsondict = decrypt_request_data(request_data=request.data)
+        jsondict = decrypt_request_data(request_data=request.data, keyfile=KEYFILE)
         ret = check_user_pass(jsondict)
     except Exception as err:
         print("[ERROR] authorisation not granted failed: {}".format(err))
@@ -651,7 +576,7 @@ def depth(depthstem: str):
 @flask_login.login_required
 def depth_v(depthstem: str):
     
-    jsondict = decrypt_request_data(request_data=request.data)
+    jsondict = decrypt_request_data(request_data=request.data, keyfile=KEYFILE)
     print("[INFO]/colour_v: received stamp: {}".format(depthstem))
     if isinstance(jsondict, dict) is False:
         return {"details": "received content is not a json dict"}, 400

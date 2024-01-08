@@ -6,6 +6,33 @@ then save resuls to archive folder so
 
 stat not good enough => use timestamp of the filename insetad
 
+## hints
+/stamp POST
+  => /uploads/stamp.txt
+  
+/colour POST
+  => /uploads/stamp-colour.png
+  
+/depth POST
+  => /uploads/stamp-depth.png
+
+if colour sent from RGBD
+/process/<stamped_colour>
+ /uploads/stamp-colour.png => mmdetection => /uploads/stamp-colour.mm
+   ok: move /uploads/stamp + colour + depth + mm => /processed
+   ko: move /uploads/stamp + colour + depth => failed_mm
+ 
+if no colour sent from RGBD
+/nocolour/<stamp>
+  move /uploads/stamp + colour + depth => /processed
+
+/result GET  <=  html page request every N sec
+  TODO display latest from timestamp filename not stat
+
+TODO night case : no object detected at all in mm => <=> nocolour
+
+TODO purge: if filename too old => moved to /backup_results
+
 ## Install
 
 https://www.digitalocean.com/community/tutorials/how-to-serve-flask-applications-with-gunicorn-and-nginx-on-ubuntu-18-04

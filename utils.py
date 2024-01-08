@@ -9,25 +9,30 @@ from dataclasses import dataclass
 from werkzeug.datastructures.headers import Headers
 import cv2
 import numpy as np
+from cryptography.fernet import Fernet
+
+# @login_manager.request_loader
+# def request_loader(request):
+#     email = request.form.get('email')
+#     if email not in users:
+#         return
+    
+#     user = User()
+#     user.id = email
+#     return user
+
+# @app.route("/hello")
+# def hello():
+#     return "<h1 style='color:blue'>Hello There!</h1>"
+
+# without login
+# @app.route("/")
+# def upload_file():
+#     return render_template('img_render.html')
 
 def logprint(debug: bool, msg: str):
     if debug is True:
         print("[DEBUG]{}".format(msg))
-
-def concatenate(filename1: str, filename2: str):
-    images = []
-    for filename in [filename1, filename2]:
-        img = cv2.imread(filename)
-        img = np.array(img, dtype=np.ubyte)
-        images.append(img)
-
-    concat = np.hstack(images)
-    return concat
-
-def get_stat_time(filepath: str) -> float:
-    stat = os.stat(filepath)
-    print(" ... stat", type(stat.st_mtime), stat.st_mtime)
-    return stat.st_mtime
 
 @dataclass
 class Stamp:
@@ -63,6 +68,62 @@ def GetTimestamp(input: Stamp, debug: bool=False) -> str:
     if debug is True:
         print("[DEBUG] GetTimestamp from {} -> {} + {}".format(input, day, temps))
     return input.prefix + day + "T" + temps + ".txt"
+
+@dataclass
+class File:
+    name: str
+    buffer: BytesIO 
+    extension: str
+
+def save_file(upload_folder: str, im_file: File):
+    print(" ... save_file 1")
+    content=im_file.buffer
+    filename=im_file.name
+    folder_path = upload_folder
+    file_path = os.path.join(folder_path, filename)
+    try:
+        print(" ... save_file 2")
+        with open(file_path, 'wb') as f:
+            print(" ... save_file 3")
+            f.write(content.read())
+    except Exception as err:
+        print(" ... save_file error")
+        raise Exception("failed writing file: error={}".format(err))
+
+    print(" ... save_file end")
+    
+def save_file2(upload_folder: str, im_file: File):
+    print(" ... save_file 1")
+    content=im_file.buffer
+    filename=im_file.name
+    folder_path = upload_folder
+    file_path = os.path.join(folder_path, filename)
+    try:
+        print(" ... save_file 2")
+        with open(file_path, 'wb') as f:
+            print(" ... save_file 3")
+            f.write(content)
+    except Exception as err:
+        print(" ... save_file error")
+        raise Exception("failed writing file: error={}".format(err))
+
+    print(" ... save_file end")
+
+
+def concatenate(filename1: str, filename2: str):
+    images = []
+    for filename in [filename1, filename2]:
+        img = cv2.imread(filename)
+        img = np.array(img, dtype=np.ubyte)
+        images.append(img)
+
+    concat = np.hstack(images)
+    return concat
+
+def get_stat_time(filepath: str) -> float:
+    stat = os.stat(filepath)
+    print(" ... stat", type(stat.st_mtime), stat.st_mtime)
+    return stat.st_mtime
 
 def parse_stamped_filename(filename: str, ext_with_dot: str, res_type: str, prefix: str="chute_d-", debug: bool = False) -> Stamp:
 
@@ -229,7 +290,6 @@ def move_files_and_update_last(MOVE: bool, info: str, nbFiles: int, fourfiles: L
     except Exception as err:
         raise Exception("[ERROR]move_files_and_update_last: error={}".format(err))
 
-
 def create_dir(dirpath: str):
     if os.path.isdir(dirpath) is False:
         os.mkdir(dirpath)
@@ -242,46 +302,6 @@ def create_dirs(folders: List[str]):
         if create_dir(dirpath=folder) is not None:
             print("[ERROR] create dir {} failed".format(folder))
             raise FileNotFoundError("[ERROR]create_dirs: could not create folder {}".format(folder))
-
-@dataclass
-class File:
-    name: str
-    buffer: BytesIO 
-    extension: str
-
-def save_file(upload_folder: str, im_file: File):
-    print(" ... save_file 1")
-    content=im_file.buffer
-    filename=im_file.name
-    folder_path = upload_folder
-    file_path = os.path.join(folder_path, filename)
-    try:
-        print(" ... save_file 2")
-        with open(file_path, 'wb') as f:
-            print(" ... save_file 3")
-            f.write(content.read())
-    except Exception as err:
-        print(" ... save_file error")
-        raise Exception("failed writing file: error={}".format(err))
-
-    print(" ... save_file end")
-    
-def save_file2(upload_folder: str, im_file: File):
-    print(" ... save_file 1")
-    content=im_file.buffer
-    filename=im_file.name
-    folder_path = upload_folder
-    file_path = os.path.join(folder_path, filename)
-    try:
-        print(" ... save_file 2")
-        with open(file_path, 'wb') as f:
-            print(" ... save_file 3")
-            f.write(content)
-    except Exception as err:
-        print(" ... save_file error")
-        raise Exception("failed writing file: error={}".format(err))
-
-    print(" ... save_file end")
 
 # before login we could send differnt type of content, now only application/json since we need to add user and password
 '''def _get_doc(request_headers: Headers, request_data: bytes, base64mode=False):
@@ -582,3 +602,40 @@ def draw_concatened_image_results(infoProcess: str,
     cv2.putText(img=outputImage, text=infoProcess, org=(10, height-10), fontFace=cv2.FONT_HERSHEY_DUPLEX, 
                 fontScale=0.5, color=(54, 212, 204), thickness=1)
     return outputImage
+
+def load_key(keyfile: str):
+    """
+    Loads the key named `secret.key` from the current directory.
+    """
+    try:
+        keyfile = "/etc/ecodata/secret.key"
+        if os.path.isfile(keyfile) is False:
+            raise FileExistsError("key file does not exist")
+        with open(keyfile, "rb") as fkey:
+            return fkey.read()
+    except Exception as err:
+        raise FileExistsError("key file was not found")
+
+def decrypt_request_data(request_data, keyfile: str):
+    try:
+        key = load_key(keyfile=keyfile)
+    except Exception as err:
+        raise Exception("[ERROR] load key failed: {}".format(err))
+    
+    try:
+        f = Fernet(key)
+        decrypted_message = f.decrypt(request_data)
+    except Exception as err:
+        raise Exception("[ERROR] decryption failed: {}".format(err))
+    
+    jsondict = None
+    try:
+        # print(" ... decrypted_message", decrypted_message)
+        jsonstr = decrypted_message.decode()
+        # print(" ... json_str", type(jsonstr), jsonstr)
+        jsondict = json.loads(jsonstr)
+        # print(" ... jsondict", type(jsondict), jsondict)
+    except Exception as err:
+        raise Exception("[ERROR] convert to json dict failed: {}".format(err))
+
+    return jsondict
