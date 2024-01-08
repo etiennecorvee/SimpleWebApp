@@ -30,4 +30,32 @@
     <input type="submit" value="Login" style="background-color:darkgray">
   </form> 
 
+
+
+  <!--button class="button" id="restartCam" >restartCam</button>
+  <script>
+    let buttonSelect = document.getElementById("restartCam")
+    buttonSelect.addEventListener('click', function(ev) {
+      relaunchCam();
+      ev.preventDefault();
+    }, false);
+
+    function relaunchCam()
+    {
+        var urlHost = window.location.host
+        var urlProtocol = window.location.protocol
+        var urlRoot = urlProtocol + "//" + urlHost
+        // console.log(" ... urlRoot:" + urlRoot)
+        const url = urlRoot + "/relaunch_v/" + camId;
+        $.ajax({
+            url: url,
+            type: 'POST',
+            success: function(result) {
+                console.log("relaunch cam success")
+            }
+        });
+    }
+  </script-->
+  
+
 </div>

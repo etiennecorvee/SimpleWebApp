@@ -18,39 +18,27 @@ from utils import get_4_filenames_from_colour_name, get_stamp_from_request_stamp
 from utils import _get_doc, move_files_and_update_last, save_doc, draw_text, draw_text_and_save
 from utils import logprint, draw_concatened_image_results, get_image_content_b64_from_path, get_image_content_b64
 
-# export USERNAME=$(/usr/bin/cat /etc/ecodata/username.txt) && export PASSWORD=$(/usr/bin/cat /etc/ecodata/password.txt) && /home/ubuntu/SimpleWebApp/venv/bin/gunicorn --workers 1 --certfile=/etc/ecodata/ecovision.crt --keyfile=/etc/ecodata/ecovision.key --bind 0.0.0.0:5001 wsgi:app
+# TODO
+# have a click button to send an reboot reply on the alive endpoint so that ecovision reboot and have colour back again
 
-# openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -keyout ecovision.key -out ecovision.crt
-# see vi /etc/ecodata/note.txt
-# sudo vi /etc/ecodata/note.txt
-# sudo mv ecovision.* /etc/ecodata/
+# ecovision clean ecolog and logs (journalctl see options limit to 10 M)
 
-
-
-
+# how to filter out:
+#     unkonwn and chair ... but i can be detected as dog !!!!!!!
+#     do test in all positions
+#     record image in all pos and send them to mm
+#     set one colour per label
+    
+#     C++ => output bboxes 3D fall with 2D + 3D dimensions
+#         and pixels ? eg broom: 
 
 # SendItToCloudServer in simul, copy it to ecovision
 # remove all the debug print starting with ... and forced debug
-
-# encrypt my json content that has usernma passxord and imaghes and that it
-# https://devqa.io/encrypt-decrypt-data-python/
-# https://stackoverflow.com/questions/68966390/how-to-encrypt-data-and-post-payload-as-form-data-to-flask-app-endpoint
-
-# https gunicorn 
-# https://stackoverflow.com/questions/7406805/running-gunicorn-on-https
-# $ gunicorn --certfile=ecovision.crt --keyfile=ecovision.key --bind 0.0.0.0:443 test:app
 
 PORT=5001
 MOVE=False
 DISPLAY_COLOUR=True # TODO only admin case
 DISPLAY_MM=True
-
-# remove the duplicated function (username and password) ?
-
-
-
-
-
 
 # add select box for each case: failed + ... + wocoour + the one we have with overlap drwan detection IA
 # firewall
@@ -710,32 +698,6 @@ def processedimage_v(camId: str, filename: str):
     except Exception as err:
         print("/processedimage_v failed: {}".format(err))
         return get_image_content_b64_from_path("images/error.png")
-     
-    
-    # fullpath_depth = os.path.join(app.config['PROCESSED'], filename)
-    # print(" ... ... processedimage, camId", camId, "filename", filename, "fullpath_depth", fullpath_depth)
-    # if os.path.isfile(fullpath_depth) is False:
-    #     print(" ... ...does not exist")
-    #     return get_image_content_b64_from_path("images/error.png")
-    # else:
-    #     print(" ... ...ok")
-    #     return get_image_content_b64_from_path(fullpath_depth)
-        
-        # if DISPLAY_COLOUR is False:
-        #     print(" ... ...ok")
-        #     HERE draw mm res
-        #     return get_image_content_b64_from_path(fullpath_depth)
-        # else:
-        #     fullpath_colour = fullpath_depth.replace("depth", "colour")
-        #     if os.path.isfile(fullpath_colour) is True:
-        #         print(" ... ...ok w rgb")
-        #         img = concatenate(fullpath_depth, fullpath_colour)
-        #         cv2.imwrite(filename="temp2.png", img=img)
-        #         return get_image_content_b64_from_path("temp2.png")
-        #     else:
-        #         print(" ... ...ok bu colour not found")
-        #         HERE draw mm res
-        #         return get_image_content_b64_from_path(fullpath_depth)
 
 @app.route('/deleteprocessedimage/<string:camId>/<string:filename>', methods=['DELETE'])
 def deleteprocessedimage(camId: str, filename: str):
@@ -832,7 +794,6 @@ def result_api_v(camId: str):
                 infoProcess=infoProcess+" depth file not found {}".format(depthFilename), outputPath="temp.png")
             return get_image_content_b64_from_path("images/error.png")
         
-        print(" ... infoProcess before concat", infoProcess)
         try:
             concatenatedImagesResult = draw_concatened_image_results(infoProcess=infoProcess,
                 directory=app.config['LAST'], 
@@ -848,66 +809,6 @@ def result_api_v(camId: str):
         except Exception as err:
             print("/result_api_v failed: {}".format(err))
             return get_image_content_b64_from_path("images/error.png")
-        
-        displayImagPath = os.path.join(app.config['LAST'], depthFilename)
-        displayImg = cv2.imread(displayImagPath)
-        height = displayImg.shape[0]
-        # width = displayImg.shape[1]
-        cv2.putText(img=displayImg, text=infoProcess, org=(10, height-10), fontFace=cv2.FONT_HERSHEY_DUPLEX, 
-                    fontScale=0.5, color=(54, 212, 204), thickness=1)
-        # if os.path.isfile(os.path.join(app.config['LAST'], colourFilename)) is True:
-        
-        if mmFilename is not None:
-            if os.path.isfile(os.path.join(app.config['LAST'], mmFilename)) is True:
-                try:
-                    with open(os.path.join(app.config['LAST'], mmFilename), "r") as fjson:
-                        data = json.loads(fjson.read())
-                        # print(" ... mmdetection data", data)
-                        try:
-                            for obj in data['predictions']:
-                                # if obj['class'] == 'person':
-                                left = int(obj['bbox'][0])
-                                top = int(obj['bbox'][1])  
-                                right = int(obj['bbox'][2])
-                                bottom = int(obj['bbox'][3])
-                                displayImg = cv2.rectangle(displayImg, (left, top), (right, bottom), (200,50,200), 2)
-                                displayImg = cv2.putText(img=displayImg, text=obj['class'],
-                                    org=(left, top), fontFace=cv2.FONT_HERSHEY_DUPLEX, fontScale=0.5, color=(125, 246, 55), thickness=1)
-                                # TODO use a specific name
-                            cv2.imwrite(filename="temp.png", img=displayImg)
-                            if DISPLAY_COLOUR is True and colourFilename is not None:
-                                displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
-                                cv2.imwrite(filename="temp.png", img=displayImg)
-                            return get_image_content_b64_from_path("temp.png")
-                        except Exception as err:
-                            print("[ERROR] {}".format(err))
-                            draw_text_and_save(displayImagPath="images/error.png", 
-                                infoProcess=infoProcess+" draw mm res failed", outputPath="temp.png")
-                            return get_image_content_b64_from_path("temp.png")
-                except:
-                    draw_text_and_save(displayImagPath=displayImagPath, 
-                        infoProcess=infoProcess+" mm file error", outputPath="temp.png")
-                    if DISPLAY_COLOUR is True and colourFilename is not None:
-                        displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
-                        cv2.imwrite(filename="temp.png", img=displayImg)
-                    return get_image_content_b64_from_path("temp.png")
-            else:
-                draw_text_and_save(displayImagPath=displayImagPath, 
-                    infoProcess=infoProcess+" error mm file", outputPath="temp.png")
-                if DISPLAY_COLOUR is True and colourFilename is not None:
-                    displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
-                    cv2.imwrite(filename="temp.png", img=displayImg)
-                return get_image_content_b64_from_path("temp.png")
-        else:
-            draw_text_and_save(displayImagPath=displayImagPath, 
-                infoProcess=infoProcess+" no mm res", outputPath="temp.png")
-            if DISPLAY_COLOUR is True and colourFilename is not None:
-                displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
-                cv2.imwrite(filename="temp.png", img=displayImg)
-            return get_image_content_b64_from_path("temp.png")
-
-        print("[ERROR]/result: reached end of endpoint")
-        return get_image_content_b64_from_path("images/error.png")
 
 @app.route('/resultListProcessed', methods=['GET']) # get to post because ajax needs to send username and password
 def resultListProcessed():
@@ -967,6 +868,9 @@ def resultListProcessed_v():
         
     # return output
     # return output2
+
+# set global var to relaunch and reply in alive
+# def relaunch_v
 
 @app.route('/logout')
 def logout():

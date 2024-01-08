@@ -490,6 +490,7 @@ def get_image_content_b64_from_path(imagepath: str) -> str:
 
 def get_image_content_b64(bytes_content: bytes) -> str:
     
+    # TODO cheat: i have to write to temp ... why todo compare image data and type
     cv2.imwrite(filename="temp.png", img=bytes_content)
     with open("temp.png", "rb") as fin:
         bytes_content = fin.read()
@@ -526,7 +527,7 @@ def draw_concatened_image_results(infoProcess: str,
             DISPLAY_COLOUR: bool, colourFilename: str,
             DISPLAY_MM: bool, mmFilename: str):
     
-    debug = True
+    debug = False
     
     outputImages = []
     
@@ -563,43 +564,17 @@ def draw_concatened_image_results(infoProcess: str,
                             # TODO use a specific name
                         outputImages.append(displayImgDepthWithMM)
                         logprint(debug, " ... ... adding MM")
-                        # cv2.imwrite(filename="temp.png", img=displayImg)
-                        # if DISPLAY_COLOUR is True and colourFilename is not None:
-                        #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
-                        #     cv2.imwrite(filename="temp.png", img=displayImg)
-                        # return get_image_content_b64_from_path("temp.png")
                     except Exception as err:
                         infoProcess=infoProcess+" draw mm res failed"
                         print("[ERROR] {}".format(err))
-                        # draw_text_and_save(displayImagPath="images/error.png", 
-                        #     infoProcess=infoProcess+" draw mm res failed", outputPath="temp.png")
-                        # return get_image_content_b64_from_path("temp.png")
             except:
                 infoProcess=infoProcess+" mm file error"
-                # draw_text_and_save(displayImagPath=displayImagPath, 
-                #     infoProcess=infoProcess+" mm file error", outputPath="temp.png")
-                # if DISPLAY_COLOUR is True and colourFilename is not None:
-                #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
-                #     cv2.imwrite(filename="temp.png", img=displayImg)
-                # return get_image_content_b64_from_path("temp.png")
         else:
             infoProcess=infoProcess+" error mm file"
-            # draw_text_and_save(displayImagPath=displayImagPath, 
-            #     infoProcess=infoProcess+" error mm file", outputPath="temp.png")
-            # if DISPLAY_COLOUR is True and colourFilename is not None:
-            #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
-            #     cv2.imwrite(filename="temp.png", img=displayImg)
-            # return get_image_content_b64_from_path("temp.png")
     else:
         infoProcess=infoProcess+" no mm res"
-        # draw_text_and_save(displayImagPath=displayImagPath, 
-        #     infoProcess=infoProcess+" no mm res", outputPath="temp.png")
-        # if DISPLAY_COLOUR is True and colourFilename is not None:
-        #     displayImg = concatenate("temp.png", os.path.join(app.config['LAST'], colourFilename))
-        #     cv2.imwrite(filename="temp.png", img=displayImg)
-        # return get_image_content_b64_from_path("temp.png")
     
-    print(" ... infoProcess after concat", infoProcess)
+    # print(" ... infoProcess after concat", infoProcess)
     
     outputImage = np.hstack(outputImages)
     height = outputImage.shape[0]
